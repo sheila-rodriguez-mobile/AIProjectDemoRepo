@@ -19,41 +19,75 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            Color.black.edgesIgnoringSafeArea(.all)
+            // Modern gradient background
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color(red: 0.1, green: 0.1, blue: 0.12),
+                    Color(red: 0.15, green: 0.15, blue: 0.18)
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .edgesIgnoringSafeArea(.all)
 
-            VStack {
+            VStack(spacing: 0) {
+                // Header with title
+                VStack(spacing: 8) {
+                    Text("Calculator")
+                        .font(.system(size: 28, weight: .semibold, design: .rounded))
+                        .foregroundColor(.white.opacity(0.7))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .padding(.bottom, 16)
+
                 Spacer()
 
                 // Display
-                HStack {
-                    Spacer()
+                VStack(alignment: .trailing, spacing: 8) {
                     Text(currentValue)
-                        .font(.system(size: 100))
+                        .font(.system(size: 60, weight: .light, design: .default))
                         .foregroundColor(.white)
-                        .padding()
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.5)
                 }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.horizontal, 24)
+                .padding(.vertical, 32)
+                .background(
+                    RoundedRectangle(cornerRadius: 20)
+                        .fill(Color(red: 0.2, green: 0.2, blue: 0.22))
+                )
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
 
                 // Buttons
-                ForEach(buttons, id: \.self) { row in
-                    HStack(spacing: 12) {
-                        ForEach(row, id: \.self) { button in
-                            Button(action: {
-                                self.didTap(button: button)
-                            }) {
-                                Text(button.rawValue)
-                                    .font(.system(size: 32))
-                                    .frame(
-                                        width: self.buttonWidth(button: button),
-                                        height: self.buttonHeight()
-                                    )
-                                    .background(button.buttonColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(self.buttonWidth(button: button) / 2)
+                VStack(spacing: 16) {
+                    ForEach(buttons, id: \.self) { row in
+                        HStack(spacing: 16) {
+                            ForEach(row, id: \.self) { button in
+                                Button(action: {
+                                    self.didTap(button: button)
+                                }) {
+                                    Text(button.rawValue)
+                                        .font(.system(size: 24, weight: .semibold, design: .default))
+                                        .frame(
+                                            maxWidth: .infinity,
+                                            maxHeight: .infinity
+                                        )
+                                        .foregroundColor(.white)
+                                        .background(button.buttonColor)
+                                        .cornerRadius(16)
+                                        .shadow(color: Color.black.opacity(0.3), radius: 8, x: 0, y: 4)
+                                }
+                                .frame(height: 70)
                             }
                         }
                     }
-                    .padding(.bottom, 3)
                 }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 32)
             }
         }
     }
@@ -82,14 +116,6 @@ struct ContentView: View {
             }
         }
     }
-
-    func buttonWidth(button: CalculatorButton) -> CGFloat {
-        return (UIScreen.main.bounds.width - (5 * 12)) / 4
-    }
-
-    func buttonHeight() -> CGFloat {
-        return (UIScreen.main.bounds.width - (5 * 12)) / 4
-    }
 }
 
 enum CalculatorButton: String {
@@ -100,11 +126,11 @@ enum CalculatorButton: String {
     var buttonColor: Color {
         switch self {
         case .add, .equals:
-            return .orange
+            return Color(red: 1.0, green: 0.65, blue: 0.0)
         case .clear:
-            return .gray
+            return Color(red: 0.6, green: 0.6, blue: 0.6)
         default:
-            return Color(UIColor(red: 55/255.0, green: 55/255.0, blue: 55/255.0, alpha: 1))
+            return Color(red: 0.3, green: 0.3, blue: 0.32)
         }
     }
 }
