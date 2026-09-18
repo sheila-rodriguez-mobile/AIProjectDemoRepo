@@ -114,7 +114,7 @@ class GitHubClient:
         return self.paginate(f'/repos/{self.repository}/labels')
 
     def create_label(self, name: str, color: str = 'ededed', description: str = '') -> None:
-        self.request('POST', f'/repos/{self.repository}/labels', {'name': name, 'color': color, 'description': description})
+        self.request('POST', f'/repos/{self.repository}/labels', data={'name': name, 'color': color, 'description': description})
 
     def open_pull_requests(self) -> list[dict[str, Any]]:
         return self.paginate(f'/repos/{self.repository}/pulls', {'state': 'open', 'sort': 'updated', 'direction': 'desc'})
@@ -128,16 +128,16 @@ class GitHubClient:
     def issue_labels(self, number: int) -> list[dict[str, Any]]:
         return self.paginate(f'/repos/{self.repository}/issues/{number}/labels')
 
-    def add_issue_labels(self, number: int, labels: list[str]) -> None:
-        if labels:
-            self.request('POST', f'/repos/{self.repository}/issues/{number}/labels', labels)
+     def add_issue_labels(self, number: int, labels: list[str]) -> None:
+         if labels:
+              self.request('POST', f'/repos/{self.repository}/issues/{number}/labels', data=s)
 
     def remove_issue_label(self, number: int, label: str) -> None:
         encoded = urllib.parse.quote(label, safe='')
         self.request('DELETE', f'/repos/{self.repository}/issues/{number}/labels/{encoded}')
 
     def add_comment(self, number: int, body: str) -> None:
-        self.request('POST', f'/repos/{self.repository}/issues/{number}/comments', {'body': body})
+        self.request('POST', f'/repos/{self.repository}/issues/{number}/comments', data={'body': body})
 
     def branches(self) -> list[dict[str, Any]]:
         return self.paginate(f'/repos/{self.repository}/branches')
