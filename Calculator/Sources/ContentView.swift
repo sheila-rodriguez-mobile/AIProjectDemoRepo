@@ -4,17 +4,18 @@ import SwiftUI
 struct ContentView: View {
     @State private var currentValue = "0"
     @State private var runningSum = 0.0
+    @State private var currentOperation: Operation = .none
     @State private var shouldClearDisplay = false
 
     enum Operation {
-        case add, none
+        case add, subtract, none
     }
 
     let buttons: [[CalculatorButton]] = [
         [.seven, .eight, .nine],
         [.four, .five, .six],
         [.one, .two, .three],
-        [.zero, .clear, .add, .equals]
+        [.zero, .clear, .subtract, .add, .equals]
     ]
 
     var body: some View {
@@ -94,18 +95,54 @@ struct ContentView: View {
 
     func didTap(button: CalculatorButton) {
         switch button {
-        case .add:
+        case .add, .subtract:
             if let value = Double(currentValue) {
-                runningSum = value
-                shouldClearDisplay = true
+                let selectedOperation: Operation = button == .add ? .add : .subtract
+
+                if shouldClearDisplay {
+                    currentOperation = selectedOperation
+                } else {
+                    if currentOperation == .none {
+                        runningSum = value
+                    } else {
+                        switch currentOperation {
+                        case .add:
+                            runningSum += value
+                        case .subtract:
+                            runningSum -= value
+                        case .none:
+                            runningSum = value
+                        }
+                        currentValue = "\(runningSum)"
+                    }
+
+                    currentOperation = selectedOperation
+                    shouldClearDisplay = true
+                }
             }
         case .equals:
             if let value = Double(currentValue) {
-                currentValue = "\(runningSum + value)"
+                let result: Double
+
+                switch currentOperation {
+                case .add:
+                    result = runningSum + value
+                case .subtract:
+                    result = runningSum - value
+                case .none:
+                    result = value
+                }
+
+                currentValue = "\(result)"
+                runningSum = result
+                currentOperation = .none
+                shouldClearDisplay = true
             }
         case .clear:
             currentValue = "0"
             runningSum = 0
+            currentOperation = .none
+            shouldClearDisplay = false
         default:
             let number = button.rawValue
             if shouldClearDisplay {
@@ -120,12 +157,12 @@ struct ContentView: View {
 
 enum CalculatorButton: String {
     case zero = "0", one = "1", two = "2", three = "3", four = "4", five = "5", six = "6", seven = "7", eight = "8", nine = "9"
-    case equals = "=", add = "+"
+    case equals = "=", add = "+", subtract = "-"
     case clear = "AC"
 
     var buttonColor: Color {
         switch self {
-        case .add, .equals:
+        case .add, .subtract, .equals:
             return Color(red: 1.0, green: 0.65, blue: 0.0)
         case .clear:
             return Color(red: 0.6, green: 0.6, blue: 0.6)
