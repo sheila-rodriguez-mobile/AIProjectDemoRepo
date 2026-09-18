@@ -31,6 +31,12 @@ The cleaner:
 6. Skips protected, exempt, or PR-associated branches.
 7. Deletes eligible branches when `DRY_RUN=false`.
 
+## Pull request inactivity thresholds
+
+- Warning: 2 days inactive
+- Escalated: 3 days inactive
+- Final notice: 4 days inactive
+
 ## Local validation
 
 Run the included tests with:

@@ -16,9 +16,9 @@ from typing import Any, Iterable
 
 DEFAULT_CONFIG = {
     'pull_request_thresholds': {
-        'warning_days': 7,
-        'escalated_days': 14,
-        'final_notice_days': 21,
+        'warning_days': 2,
+        'escalated_days': 3,
+        'final_notice_days': 4,
     },
     'exempt_pr_labels': ['no-stale', 'security', 'blocked'],
     'managed_labels': ['stale:warning', 'stale:escalated', 'stale:final-notice'],
