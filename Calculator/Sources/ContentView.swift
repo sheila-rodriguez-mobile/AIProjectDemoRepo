@@ -8,14 +8,14 @@ struct ContentView: View {
     @State private var shouldClearDisplay = false
 
     enum Operation {
-        case add, subtract, none
+        case add, subtract, divide, none
     }
 
     let buttons: [[CalculatorButton]] = [
-        [.seven, .eight, .nine],
-        [.four, .five, .six],
-        [.one, .two, .three],
-        [.zero, .clear, .subtract, .add, .equals]
+        [.seven, .eight, .nine, .divide],
+        [.four, .five, .six, .subtract],
+        [.one, .two, .three, .add],
+        [.zero, .clear, .equals]
     ]
 
     var body: some View {
@@ -95,9 +95,20 @@ struct ContentView: View {
 
     func didTap(button: CalculatorButton) {
         switch button {
-        case .add, .subtract:
+        case .add, .subtract, .divide:
             if let value = Double(currentValue) {
-                let selectedOperation: Operation = button == .add ? .add : .subtract
+                let selectedOperation: Operation
+
+                switch button {
+                case .add:
+                    selectedOperation = .add
+                case .subtract:
+                    selectedOperation = .subtract
+                case .divide:
+                    selectedOperation = .divide
+                default:
+                    selectedOperation = .none
+                }
 
                 if shouldClearDisplay {
                     currentOperation = selectedOperation
@@ -105,14 +116,12 @@ struct ContentView: View {
                     if currentOperation == .none {
                         runningSum = value
                     } else {
-                        switch currentOperation {
-                        case .add:
-                            runningSum += value
-                        case .subtract:
-                            runningSum -= value
-                        case .none:
-                            runningSum = value
+                        guard let result = perform(operation: currentOperation, lhs: runningSum, rhs: value) else {
+                            showError()
+                            return
                         }
+
+                        runningSum = result
                         currentValue = "\(runningSum)"
                     }
 
@@ -125,12 +134,15 @@ struct ContentView: View {
                 let result: Double
 
                 switch currentOperation {
-                case .add:
-                    result = runningSum + value
-                case .subtract:
-                    result = runningSum - value
                 case .none:
                     result = value
+                default:
+                    guard let computedResult = perform(operation: currentOperation, lhs: runningSum, rhs: value) else {
+                        showError()
+                        return
+                    }
+
+                    result = computedResult
                 }
 
                 currentValue = "\(result)"
@@ -153,16 +165,40 @@ struct ContentView: View {
             }
         }
     }
+
+    private func perform(operation: Operation, lhs: Double, rhs: Double) -> Double? {
+        switch operation {
+        case .add:
+            return lhs + rhs
+        case .subtract:
+            return lhs - rhs
+        case .divide:
+            guard rhs != 0 else {
+                return nil
+            }
+
+            return lhs / rhs
+        case .none:
+            return rhs
+        }
+    }
+
+    private func showError() {
+        currentValue = "Error"
+        runningSum = 0
+        currentOperation = .none
+        shouldClearDisplay = true
+    }
 }
 
 enum CalculatorButton: String {
     case zero = "0", one = "1", two = "2", three = "3", four = "4", five = "5", six = "6", seven = "7", eight = "8", nine = "9"
-    case equals = "=", add = "+", subtract = "-"
+    case equals = "=", add = "+", subtract = "-", divide = "÷"
     case clear = "AC"
 
     var buttonColor: Color {
         switch self {
-        case .add, .subtract, .equals:
+        case .add, .subtract, .divide, .equals:
             return Color(red: 1.0, green: 0.65, blue: 0.0)
         case .clear:
             return Color(red: 0.6, green: 0.6, blue: 0.6)
