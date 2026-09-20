@@ -6,7 +6,7 @@ This repository includes a GitHub Actions workflow that manages stale pull reque
 
 - File: `.github/workflows/stale-cleaner.yml`
 - Schedule: weekdays at 08:20 UTC
-- Manual runs default to dry-run mode
+- Manual runs default to real mode
 
 ## Runtime configuration
 
@@ -15,7 +15,7 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 - `GITHUB_TOKEN` — required
 - `GITHUB_REPOSITORY` — required
 - `CONFIG_PATH` — optional, defaults to `.github/stale-cleaner.json`
-- `DRY_RUN` — optional, defaults to `true`
+- `DRY_RUN` — optional, defaults to `false` for scheduled runs and for manual runs unless `dry_run` is explicitly enabled
 - `GITHUB_API_URL` — optional, defaults to `https://api.github.com`
 - `GITHUB_STEP_SUMMARY` — optional
 
