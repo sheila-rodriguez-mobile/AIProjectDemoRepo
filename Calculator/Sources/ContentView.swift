@@ -8,14 +8,14 @@ struct ContentView: View {
     @State private var shouldClearDisplay = false
 
     enum Operation {
-        case add, subtract, divide, none
+        case add, subtract, multiply, divide, none
     }
 
     let buttons: [[CalculatorButton]] = [
         [.seven, .eight, .nine, .divide],
-        [.four, .five, .six, .subtract],
-        [.one, .two, .three, .add],
-        [.zero, .clear, .equals]
+        [.four, .five, .six, .multiply],
+        [.one, .two, .three, .subtract],
+        [.zero, .clear, .equals, .add]
     ]
 
     var body: some View {
@@ -95,7 +95,7 @@ struct ContentView: View {
 
     func didTap(button: CalculatorButton) {
         switch button {
-        case .add, .subtract, .divide:
+        case .add, .subtract, .multiply, .divide:
             if let value = Double(currentValue) {
                 let selectedOperation: Operation
 
@@ -104,6 +104,8 @@ struct ContentView: View {
                     selectedOperation = .add
                 case .subtract:
                     selectedOperation = .subtract
+                case .multiply:
+                    selectedOperation = .multiply
                 case .divide:
                     selectedOperation = .divide
                 default:
@@ -172,6 +174,8 @@ struct ContentView: View {
             return lhs + rhs
         case .subtract:
             return lhs - rhs
+        case .multiply:
+            return lhs * rhs
         case .divide:
             guard rhs != 0 else {
                 return nil
@@ -193,12 +197,12 @@ struct ContentView: View {
 
 enum CalculatorButton: String {
     case zero = "0", one = "1", two = "2", three = "3", four = "4", five = "5", six = "6", seven = "7", eight = "8", nine = "9"
-    case equals = "=", add = "+", subtract = "-", divide = "÷"
+    case equals = "=", add = "+", subtract = "-", multiply = "×", divide = "÷"
     case clear = "AC"
 
     var buttonColor: Color {
         switch self {
-        case .add, .subtract, .divide, .equals:
+        case .add, .subtract, .multiply, .divide, .equals:
             return Color(red: 1.0, green: 0.65, blue: 0.0)
         case .clear:
             return Color(red: 0.6, green: 0.6, blue: 0.6)
