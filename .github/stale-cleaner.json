@@ -1,0 +1,30 @@
+{
+  "pull_request_thresholds": {
+    "warning_days": 2,
+    "escalated_days": 3,
+    "final_notice_days": 4
+  },
+  "exempt_pr_labels": [
+    "no-stale",
+    "security",
+    "blocked"
+  ],
+  "managed_labels": [
+    "stale:warning",
+    "stale:escalated",
+    "stale:final-notice"
+  ],
+  "branch_thresholds": {
+    "stale_days": 30,
+    "delete_candidate_days": 60
+  },
+  "exempt_branch_patterns": [
+    "main",
+    "master",
+    "develop",
+    "release/*",
+    "hotfix/*"
+  ],
+  "protected_label": "Do_Not_Delete",
+  "additional_mentions": []
+}
