@@ -33,9 +33,9 @@ The cleaner:
 
 ## Pull request inactivity thresholds
 
-- Warning: 2 days inactive
-- Escalated: 3 days inactive
-- Final notice: 4 days inactive
+- Warning (yellow): 2 days inactive
+- Escalated (orange): 3 days inactive
+- Final notice (red): 4 days inactive
 
 ## Local validation
 
