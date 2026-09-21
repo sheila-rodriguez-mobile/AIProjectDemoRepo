@@ -17,8 +17,8 @@ from typing import Any, Iterable
 DEFAULT_CONFIG = {
     "pull_request_thresholds": {
         "warning_days": 2,
-        "escalated_days": 3,
-        "final_notice_days": 4,
+        "escalated_days": 4,
+        "final_notice_days": 7,
     },
     "exempt_pr_labels": ["no-stale", "security", "blocked"],
     "managed_labels": ["stale:warning", "stale:escalated", "stale:final-notice"],
@@ -340,17 +340,9 @@ def comment_body(stage: str, days: int, mentions: list[str], pr_number: int) -> 
 def ensure_stale_labels(
     client: GitHubClient, config: dict[str, Any], existing_labels: set[str]
 ) -> None:
-    
-    label_colors = {
-        "stale:warning": "ffff00",  # yellow
-        "stale:escalated": "ffa500",  # orange
-        "stale:final-notice": "ff0000",  # red
-    }
-
     for label in config["managed_labels"]:
         if label.lower() not in existing_labels:
-            color = label_colors.get(label, "ededed")
-            client.create_label(label, color=color)
+            client.create_label(label)
 
 
 def process_pull_requests(

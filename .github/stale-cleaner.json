@@ -1,8 +1,8 @@
 {
   "pull_request_thresholds": {
     "warning_days": 2,
-    "escalated_days": 3,
-    "final_notice_days": 4
+    "escalated_days": 4,
+    "final_notice_days": 7
   },
   "exempt_pr_labels": [
     "no-stale",

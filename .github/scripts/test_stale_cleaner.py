@@ -22,8 +22,10 @@ class StaleCleanerTests(unittest.TestCase):
         self.assertEqual(module.stale_stage_for_days(0, thresholds), 'active')
         self.assertEqual(module.stale_stage_for_days(1, thresholds), 'active')
         self.assertEqual(module.stale_stage_for_days(2, thresholds), 'warning')
-        self.assertEqual(module.stale_stage_for_days(3, thresholds), 'escalated')
-        self.assertEqual(module.stale_stage_for_days(4, thresholds), 'final-notice')
+        self.assertEqual(module.stale_stage_for_days(3, thresholds), 'warning')
+        self.assertEqual(module.stale_stage_for_days(4, thresholds), 'escalated')
+        self.assertEqual(module.stale_stage_for_days(6, thresholds), 'escalated')
+        self.assertEqual(module.stale_stage_for_days(7, thresholds), 'final-notice')
 
     def test_branch_exempt_patterns(self) -> None:
         patterns = module.DEFAULT_CONFIG['exempt_branch_patterns']
