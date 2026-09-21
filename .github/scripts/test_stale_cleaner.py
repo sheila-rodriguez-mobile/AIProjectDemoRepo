@@ -48,6 +48,25 @@ class StaleCleanerTests(unittest.TestCase):
         review = dt.datetime(2026, 9, 15, 18, 45, tzinfo=dt.timezone.utc)
         self.assertEqual(module.latest_activity([commit], [review], now), review)
 
+    def test_ensure_stale_labels_creates_severity_colored_labels(self) -> None:
+        class DummyClient:
+            def __init__(self) -> None:
+                self.created: list[tuple[str, str, str]] = []
+
+            def create_label(self, name: str, color: str = 'ededed', description: str = '') -> None:
+                self.created.append((name, color, description))
+
+        client = DummyClient()
+        existing_labels: set[str] = set()
+
+        module.ensure_stale_labels(client, module.DEFAULT_CONFIG, existing_labels)
+
+        self.assertEqual(client.created, [
+            ('stale:warning', 'ffd33d', 'Pull request has been inactive for 2+ days.'),
+            ('stale:escalated', 'fb8c00', 'Pull request has been inactive for 3+ days.'),
+            ('stale:final-notice', 'd73a49', 'Pull request has been inactive for 4+ days.'),
+        ])
+
 
 if __name__ == '__main__':
     raise SystemExit(unittest.main())

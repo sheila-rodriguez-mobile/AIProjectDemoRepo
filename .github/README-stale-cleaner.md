@@ -23,13 +23,19 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 
 The cleaner:
 
-1. Ensures the managed stale labels exist.
+1. Creates any missing managed stale labels using severity-specific colors.
 2. Reviews open pull requests and applies stale labels when inactivity crosses configured thresholds.
 3. Posts reminder comments with mentions for the PR author and reviewers.
 4. Removes stale labels when activity resumes.
 5. Scans branches for stale and delete-candidate ages.
 6. Skips protected, exempt, or PR-associated branches.
 7. Deletes eligible branches when `DRY_RUN=false`.
+
+Managed label colors:
+
+- `stale:warning` — yellow (`#ffd33d`)
+- `stale:escalated` — orange (`#fb8c00`)
+- `stale:final-notice` — red (`#d73a49`)
 
 ## Pull request inactivity thresholds
 

@@ -1,1 +1,3 @@
 *.xcuserstate
+.github/scripts/__pycache__/stale_cleaner.cpython-313.pyc
+.github/.DS_Store

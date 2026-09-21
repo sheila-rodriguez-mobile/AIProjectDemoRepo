@@ -31,6 +31,21 @@ DEFAULT_CONFIG = {
     "additional_mentions": [],
 }
 
+MANAGED_LABEL_STYLES = {
+    "stale:warning": {
+        "color": "ffd33d",
+        "description": "Pull request has been inactive for 2+ days.",
+    },
+    "stale:escalated": {
+        "color": "fb8c00",
+        "description": "Pull request has been inactive for 3+ days.",
+    },
+    "stale:final-notice": {
+        "color": "d73a49",
+        "description": "Pull request has been inactive for 4+ days.",
+    },
+}
+
 
 @dataclass
 class RunSummary:
@@ -340,15 +355,14 @@ def comment_body(stage: str, days: int, mentions: list[str], pr_number: int) -> 
 def ensure_stale_labels(
     client: GitHubClient, config: dict[str, Any], existing_labels: set[str]
 ) -> None:
-    label_colors = {
-        "stale:warning": "ffff00",  # yellow
-        "stale:escalated": "ffa500",  # orange
-        "stale:final-notice": "ff0000",  # red
-    }
     for label in config["managed_labels"]:
         if label.lower() not in existing_labels:
-            color = label_colors.get(label.lower(), "ededed")
-            client.create_label(label, color=color)
+            style = MANAGED_LABEL_STYLES.get(label, {})
+            client.create_label(
+                label,
+                color=style.get("color", "ededed"),
+                description=style.get("description", ""),
+            )
 
 
 def process_pull_requests(
