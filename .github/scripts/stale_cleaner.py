@@ -340,16 +340,14 @@ def comment_body(stage: str, days: int, mentions: list[str], pr_number: int) -> 
 def ensure_stale_labels(
     client: GitHubClient, config: dict[str, Any], existing_labels: set[str]
 ) -> None:
-    
     label_colors = {
         "stale:warning": "ffff00",  # yellow
         "stale:escalated": "ffa500",  # orange
         "stale:final-notice": "ff0000",  # red
     }
-
     for label in config["managed_labels"]:
         if label.lower() not in existing_labels:
-            color = label_colors.get(label, "ededed")
+            color = label_colors.get(label.lower(), "ededed")
             client.create_label(label, color=color)
 
 
