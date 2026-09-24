@@ -50,6 +50,74 @@ class StaleCleanerTests(unittest.TestCase):
         review = dt.datetime(2026, 9, 15, 18, 45, tzinfo=dt.timezone.utc)
         self.assertEqual(module.latest_activity([commit], [review], now), review)
 
+    def test_ai_decision_disabled_returns_none(self) -> None:
+        pr = {
+            'number': 42,
+            'title': 'Test PR',
+            'body': 'Test body',
+        }
+        ai_config = {'enabled': False}
+        decision = module.evaluate_pr_with_ai(pr, 'warning', ai_config)
+        self.assertIsNone(decision)
+
+    def test_ai_decision_detects_wip_indicator(self) -> None:
+        pr = {
+            'number': 42,
+            'title': '[WIP] Feature under review',
+            'body': 'Still working on this',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['work-in-progress'],
+            'confidence_threshold': 0.6,
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'warning', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertEqual(decision.category, 'work-in-progress')
+        self.assertGreaterEqual(decision.confidence, 0.6)
+
+    def test_ai_decision_detects_active_review(self) -> None:
+        pr = {
+            'number': 43,
+            'title': 'Add new feature',
+            'body': 'Addressing review feedback',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['active-review'],
+            'confidence_threshold': 0.5,
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'escalated', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertEqual(decision.decision, 'suppress')
+        self.assertEqual(decision.category, 'active-review')
+
+    def test_ai_respects_confidence_threshold(self) -> None:
+        pr = {
+            'number': 44,
+            'title': 'Update docs',
+            'body': 'Minor update',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['insufficient-evidence'],
+            'confidence_threshold': 0.9,  # High threshold
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'final-notice', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertNotEqual(decision.final_action, 'suppress')  # Low confidence action
+
+    def test_run_summary_initializes_ai_fields(self) -> None:
+        summary = module.RunSummary(run_mode='dry-run')
+        self.assertEqual(summary.ai_reviewed, 0)
+        self.assertEqual(summary.ai_suppressed, 0)
+        self.assertEqual(summary.ai_fallbacks, 0)
+        self.assertIsNotNone(summary.ai_decisions)
+        self.assertEqual(len(summary.ai_decisions), 0)
+
 
 if __name__ == '__main__':
     raise SystemExit(unittest.main())

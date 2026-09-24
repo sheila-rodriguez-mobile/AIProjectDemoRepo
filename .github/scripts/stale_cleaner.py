@@ -33,6 +33,17 @@ DEFAULT_CONFIG = {
 
 
 @dataclass
+class AIDecision:
+    pr_number: int
+    baseline_stage: str
+    decision: str
+    category: str
+    confidence: float
+    reason: str
+    final_action: str
+
+
+@dataclass
 class RunSummary:
     run_mode: str
     prs_processed: int = 0
@@ -44,6 +55,10 @@ class RunSummary:
     delete_candidates: list[str] | None = None
     deleted_branches: list[str] | None = None
     protected_by_labels: list[str] | None = None
+    ai_decisions: list[AIDecision] | None = None
+    ai_suppressed: int = 0
+    ai_reviewed: int = 0
+    ai_fallbacks: int = 0
 
     def __post_init__(self) -> None:
         if self.stale_counts is None:
@@ -61,6 +76,8 @@ class RunSummary:
             self.deleted_branches = []
         if self.protected_by_labels is None:
             self.protected_by_labels = []
+        if self.ai_decisions is None:
+            self.ai_decisions = []
 
 
 class GitHubClient:
@@ -338,11 +355,82 @@ def comment_body(stage: str, days: int, mentions: list[str], pr_number: int) -> 
 
 
 def ensure_stale_labels(
-    client: GitHubClient, config: dict[str, Any], existing_labels: set[str]
+    client: GitHubClient, config: dict[str, Any], existing_labels: set[str], dry_run: bool = False
 ) -> None:
+    if dry_run:
+        return
     for label in config["managed_labels"]:
         if label.lower() not in existing_labels:
             client.create_label(label)
+
+
+def evaluate_pr_with_ai(
+    pr: dict[str, Any],
+    baseline_stage: str,
+    ai_config: dict[str, Any],
+) -> AIDecision | None:
+    """
+    Phase 1 AI evaluation: Conservative, safe, observable.
+    
+    Returns AIDecision if AI has insights, None if fallback to default behavior.
+    In Phase 1, AI only logs decisions and does not suppress PRs.
+    """
+    if not ai_config.get("enabled"):
+        return None
+
+    pr_number = int(pr.get("number", 0))
+    
+    # Phase 1: Conservative AI that mostly observes and logs
+    # In future phases, this will use LLM to analyze PR comments, activity patterns, etc.
+    
+    # For now, use heuristics:
+    # If PR has recent comments or activity despite being marked stale, flag it
+    decision = "keep_stale"  # Default conservative: keep existing stale label
+    category = "insufficient-evidence"
+    confidence = 0.5
+    reason = "Phase 1: Conservative mode - awaiting activity analysis"
+    
+    # Look for signs of activity in title or description
+    title = str(pr.get("title", "")).lower()
+    body = str(pr.get("body", "")).lower()
+    combined = f"{title} {body}"
+    
+    # Heuristic: Look for WIP, draft, or waiting indicators
+    if any(marker in combined for marker in ["wip", "draft", "waiting", "hold", "blocked"]):
+        decision = "suppress"
+        category = "work-in-progress"
+        confidence = 0.7
+        reason = "Detected WIP/draft/waiting indicators in PR title or description"
+    
+    # Heuristic: Look for activity indicators
+    elif any(marker in combined for marker in ["review", "address", "fix", "update"]):
+        decision = "suppress"
+        category = "active-review"
+        confidence = 0.6
+        reason = "Detected recent activity indicators in PR metadata"
+    
+    final_action = decision if confidence >= ai_config.get("confidence_threshold", 0.8) else "defer"
+    
+    return AIDecision(
+        pr_number=pr_number,
+        baseline_stage=baseline_stage,
+        decision=decision,
+        category=category,
+        confidence=confidence,
+        reason=reason,
+        final_action=final_action,
+    )
+
+
+def log_ai_decision(decision: AIDecision, dry_run: bool = False) -> None:
+    """Log AI decision for transparency."""
+    mode = "DRY_RUN" if dry_run else "APPLY"
+    print(
+        f"[AI] PR #{decision.pr_number} | Stage: {decision.baseline_stage} | "
+        f"Decision: {decision.decision} | Category: {decision.category} | "
+        f"Confidence: {decision.confidence:.1%} | Action: {decision.final_action} | "
+        f"Reason: {decision.reason} ({mode})"
+    )
 
 
 def process_pull_requests(
@@ -355,11 +443,13 @@ def process_pull_requests(
 ) -> None:
     managed_labels = [label.lower() for label in config["managed_labels"]]
     exempt_labels = {label.lower() for label in config["exempt_pr_labels"]}
+    ai_config = config.get("ai_config", {})
 
     ensure_stale_labels(
         client,
         config,
         {label.get("name", "").strip().lower() for label in client.repo_labels()},
+        dry_run=dry_run,
     )
 
     for pr in client.open_pull_requests():
@@ -393,6 +483,19 @@ def process_pull_requests(
         days_inactive = days_between(last_activity, now)
         stage = stale_stage_for_days(days_inactive, config["pull_request_thresholds"])
         summary.stale_counts[stage] += 1
+
+        # Phase 1: AI evaluation for observability
+        ai_decision = None
+        if stage != "active" and ai_config.get("enabled"):
+            ai_decision = evaluate_pr_with_ai(pr, stage, ai_config)
+            summary.ai_reviewed += 1
+            if ai_decision:
+                if ai_config.get("log_decisions"):
+                    log_ai_decision(ai_decision, dry_run=dry_run)
+                summary.ai_decisions.append(ai_decision)
+                # Phase 1: AI only logs, does not suppress
+                if ai_decision.final_action == "suppress" and ai_decision.category in ai_config.get("allowed_suppression_categories", []):
+                    summary.ai_suppressed += 1
 
         target_label = {
             "warning": "stale:warning",
@@ -509,6 +612,38 @@ def write_summary(summary: RunSummary) -> None:
     ]
     for stage, count in summary.stale_counts.items():
         lines.append(f"- {stage}: {count}")
+    
+    # AI Metrics Section
+    lines.extend([
+        "",
+        "## AI Agent Metrics",
+        f"- PRs reviewed by AI: {summary.ai_reviewed}",
+        f"- PRs flagged for suppression: {summary.ai_suppressed}",
+        f"- AI fallback/errors: {summary.ai_fallbacks}",
+    ])
+    
+    # AI Rationale Section
+    if summary.ai_decisions:
+        lines.extend(["", "## AI Decision Details"])
+        suppressed = [d for d in summary.ai_decisions if d.final_action == "suppress"]
+        reviewed = [d for d in summary.ai_decisions if d.final_action == "defer"]
+        
+        if suppressed:
+            lines.append("### PRs AI Flagged for Suppression")
+            for decision in suppressed:
+                lines.append(
+                    f"- PR #{decision.pr_number}: {decision.category} "
+                    f"(confidence: {decision.confidence:.1%}) - {decision.reason}"
+                )
+        
+        if reviewed:
+            lines.append("### PRs AI Reviewed But Left Stale")
+            for decision in reviewed:
+                lines.append(
+                    f"- PR #{decision.pr_number}: Insufficient evidence "
+                    f"(confidence: {decision.confidence:.1%}) - {decision.reason}"
+                )
+    
     lines.extend(["", "## Stale Branches"])
     lines.extend(f"- {name}" for name in summary.stale_branches or ["_None_"])
     lines.extend(["", "## Deleted Branches"])
