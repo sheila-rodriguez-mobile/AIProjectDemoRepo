@@ -101,6 +101,51 @@ class RunSummary:
             self.ai_decisions = []
 
 
+def summary_report_payload(summary: RunSummary) -> dict[str, Any]:
+    return {
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "run_mode": summary.run_mode,
+        "prs_processed": summary.prs_processed,
+        "prs_skipped_exempt": summary.prs_skipped_exempt,
+        "stale_counts": dict(summary.stale_counts or {}),
+        "cleared_stale_labels": summary.cleared_stale_labels,
+        "branches_processed": summary.branches_processed,
+        "stale_branches": list(summary.stale_branches or []),
+        "delete_candidates": list(summary.delete_candidates or []),
+        "deleted_branches": list(summary.deleted_branches or []),
+        "protected_by_labels": list(summary.protected_by_labels or []),
+        "ai": {
+            "reviewed": summary.ai_reviewed,
+            "suppressed": summary.ai_suppressed,
+            "fallbacks": summary.ai_fallbacks,
+            "decisions": [
+                {
+                    "pr_number": decision.pr_number,
+                    "baseline_stage": decision.baseline_stage,
+                    "decision": decision.decision,
+                    "category": decision.category,
+                    "confidence": decision.confidence,
+                    "reason": decision.reason,
+                    "final_action": decision.final_action,
+                    "provider": decision.provider,
+                    "fallback_reason": decision.fallback_reason,
+                }
+                for decision in (summary.ai_decisions or [])
+            ],
+        },
+    }
+
+
+def write_summary_report(summary: RunSummary) -> None:
+    report_path = os.getenv("STALE_CLEANER_REPORT_PATH", ".github/stale-cleaner-report.json")
+    if not report_path:
+        return
+    Path(report_path).write_text(
+        json.dumps(summary_report_payload(summary), indent=2) + "\n",
+        encoding="utf-8",
+    )
+
+
 class GitHubClient:
     def __init__(
         self, token: str, repository: str, api_url: str = "https://api.github.com"
@@ -817,6 +862,7 @@ def write_summary(summary: RunSummary) -> None:
     lines.extend(f"- {name}" for name in summary.protected_by_labels or ["_None_"])
 
     text = "\n".join(lines) + "\n"
+    write_summary_report(summary)
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if summary_path:
         Path(summary_path).write_text(text, encoding="utf-8")

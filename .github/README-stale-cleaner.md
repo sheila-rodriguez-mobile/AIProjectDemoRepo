@@ -18,6 +18,7 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 - `DRY_RUN` — optional, defaults to `true`
 - `GITHUB_API_URL` — optional, defaults to `https://api.github.com`
 - `GITHUB_STEP_SUMMARY` — optional
+- `STALE_CLEANER_REPORT_PATH` — optional, defaults to `.github/stale-cleaner-report.json`
 
 ## Behavior summary
 
@@ -30,6 +31,7 @@ The cleaner:
 5. Scans branches for stale and delete-candidate ages.
 6. Skips protected, exempt, or PR-associated branches.
 7. Deletes eligible branches when `DRY_RUN=false`.
+8. Writes a structured JSON report for the local dashboard and other tooling.
 
 ## Pull request inactivity thresholds
 
@@ -168,3 +170,58 @@ Run the included tests with:
 ```bash
 python3 .github/scripts/test_stale_cleaner.py
 ```
+
+## Local dashboard
+
+The cleaner now writes a structured report to:
+
+```text
+.github/stale-cleaner-report.json
+```
+
+That JSON includes:
+
+- overall PR/branch metrics
+- stale counts
+- AI metrics
+- AI decision details
+- branch lists
+
+### 1. Run the cleaner
+
+```bash
+python3 .github/scripts/stale_cleaner.py
+```
+
+### 2. Start the dashboard
+
+```bash
+python3 .github/scripts/stale_cleaner_dashboard.py
+```
+
+Then open:
+
+```text
+http://127.0.0.1:8765
+```
+
+### Dashboard features
+
+- summary cards for PR, branch, and AI counts
+- PR stale-count breakdown
+- AI decision list with provider, confidence, and rationale
+- stale/protected/delete-candidate branch lists
+- raw JSON payload for debugging
+
+### Optional custom report path
+
+```bash
+export STALE_CLEANER_REPORT_PATH="/tmp/stale-cleaner-report.json"
+python3 .github/scripts/stale_cleaner.py
+python3 .github/scripts/stale_cleaner_dashboard.py --report /tmp/stale-cleaner-report.json
+```
+
+## Important runtime note for the dashboard
+
+The dashboard only shows what exists in the latest report file.
+If the cleaner has not run yet, or if the report path is changed, the dashboard will show that the report is missing until a new run writes it.
