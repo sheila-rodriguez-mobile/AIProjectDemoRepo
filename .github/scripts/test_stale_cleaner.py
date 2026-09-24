@@ -7,6 +7,7 @@ import importlib.util
 import sys
 from pathlib import Path
 import unittest
+from unittest import mock
 
 SCRIPT_PATH = Path(__file__).with_name('stale_cleaner.py')
 spec = importlib.util.spec_from_file_location('stale_cleaner', SCRIPT_PATH)
@@ -49,6 +50,136 @@ class StaleCleanerTests(unittest.TestCase):
         commit = dt.datetime(2026, 9, 12, 9, 30, tzinfo=dt.timezone.utc)
         review = dt.datetime(2026, 9, 15, 18, 45, tzinfo=dt.timezone.utc)
         self.assertEqual(module.latest_activity([commit], [review], now), review)
+
+    def test_ai_decision_disabled_returns_none(self) -> None:
+        pr = {
+            'number': 42,
+            'title': 'Test PR',
+            'body': 'Test body',
+        }
+        ai_config = {'enabled': False}
+        decision = module.evaluate_pr_with_ai(pr, 'warning', ai_config)
+        self.assertIsNone(decision)
+
+    def test_ai_decision_detects_wip_indicator(self) -> None:
+        pr = {
+            'number': 42,
+            'title': '[WIP] Feature under review',
+            'body': 'Still working on this',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['work-in-progress'],
+            'confidence_threshold': 0.6,
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'warning', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertEqual(decision.category, 'work-in-progress')
+        self.assertGreaterEqual(decision.confidence, 0.6)
+        self.assertEqual(decision.provider, 'heuristic')
+
+    def test_ai_decision_detects_active_review(self) -> None:
+        pr = {
+            'number': 43,
+            'title': 'Add new feature',
+            'body': 'Addressing review feedback',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['active-review'],
+            'confidence_threshold': 0.5,
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'escalated', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertEqual(decision.decision, 'suppress')
+        self.assertEqual(decision.category, 'active-review')
+
+    def test_ai_respects_confidence_threshold(self) -> None:
+        pr = {
+            'number': 44,
+            'title': 'Update docs',
+            'body': 'Minor update',
+        }
+        ai_config = {
+            'enabled': True,
+            'allowed_suppression_categories': ['insufficient-evidence'],
+            'confidence_threshold': 0.9,  # High threshold
+            'log_decisions': False,
+        }
+        decision = module.evaluate_pr_with_ai(pr, 'final-notice', ai_config)
+        self.assertIsNotNone(decision)
+        self.assertNotEqual(decision.final_action, 'suppress')  # Low confidence action
+
+    def test_run_summary_initializes_ai_fields(self) -> None:
+        summary = module.RunSummary(run_mode='dry-run')
+        self.assertEqual(summary.ai_reviewed, 0)
+        self.assertEqual(summary.ai_suppressed, 0)
+        self.assertEqual(summary.ai_fallbacks, 0)
+        self.assertIsNotNone(summary.ai_decisions)
+        self.assertEqual(len(summary.ai_decisions), 0)
+
+    def test_default_ai_provider_is_gemini_cli(self) -> None:
+        self.assertEqual(module.DEFAULT_CONFIG['ai_config']['ai_provider'], 'gemini_cli')
+
+    def test_extract_json_object_parses_wrapped_content(self) -> None:
+        payload = 'noise {"is_active": true, "category": "active-review", "confidence": 0.91, "reason": "recent updates"} tail'
+        parsed = module.extract_json_object(payload)
+        self.assertTrue(parsed['is_active'])
+        self.assertEqual(parsed['category'], 'active-review')
+
+    @mock.patch.object(module.shutil, 'which', return_value='/opt/homebrew/bin/gemini')
+    @mock.patch.object(module.subprocess, 'run')
+    def test_gemini_cli_decision_parses_json_output(self, mock_run: mock.Mock, _mock_which: mock.Mock) -> None:
+        mock_run.return_value = mock.Mock(
+            returncode=0,
+            stdout='{"is_active": true, "category": "active-review", "confidence": 0.93, "reason": "Review is ongoing"}',
+            stderr='',
+        )
+        pr = {
+            'number': 101,
+            'title': 'Feature PR',
+            'body': 'Implements feature',
+        }
+        ai_config = {
+            'enabled': True,
+            'ai_provider': 'gemini_cli',
+            'confidence_threshold': 0.8,
+        }
+        decision = module.evaluate_pr_with_gemini_cli(pr, 'warning', ai_config)
+        self.assertEqual(decision.provider, 'gemini_cli')
+        self.assertEqual(decision.decision, 'suppress')
+        self.assertEqual(decision.category, 'active-review')
+        self.assertEqual(decision.final_action, 'suppress')
+
+    def test_process_pr_handles_key_error_gracefully(self) -> None:
+        class MockGitHubClient:
+            def open_pull_requests(self):
+                return [
+                    {'number': 1, 'created_at': '2026-09-15T12:00:00Z'},
+                    {'number': 2}  # Missing 'created_at'
+                ]
+            def issue_labels(self, number):
+                return []
+            def pull_request_commits(self, number):
+                return []
+            def pull_request_reviews(self, number):
+                return []
+            def repo_labels(self):
+                return []
+            def ensure_stale_labels(self, client, config, existing_labels, dry_run):
+                pass
+
+        client = MockGitHubClient()
+        config = module.DEFAULT_CONFIG
+        now = dt.datetime(2026, 9, 17, 8, 20, tzinfo=dt.timezone.utc)
+        summary = module.RunSummary(run_mode='dry-run')
+
+        module.process_pull_requests(client, config, now, True, summary, 'owner')
+
+        self.assertEqual(summary.prs_processed, 2)
+        self.assertEqual(summary.ai_fallbacks, 1)
 
 
 if __name__ == '__main__':

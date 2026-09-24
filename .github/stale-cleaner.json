@@ -26,5 +26,20 @@
     "hotfix/*"
   ],
   "protected_label": "Do_Not_Delete",
-  "additional_mentions": []
+  "additional_mentions": [],
+  "ai_config": {
+    "enabled": true,
+    "ai_provider": "gemini_cli",
+    "gemini_model": null,
+    "allowed_suppression_categories": [
+      "active-review",
+      "waiting-for-author",
+      "blocked-by-dependency",
+      "work-in-progress"
+    ],
+    "confidence_threshold": 0.8,
+    "max_comments_to_inspect": 10,
+    "author_only_comments_count": false,
+    "log_decisions": true
+  }
 }
