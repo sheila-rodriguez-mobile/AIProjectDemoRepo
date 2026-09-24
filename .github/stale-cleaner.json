@@ -29,10 +29,13 @@
   "additional_mentions": [],
   "ai_config": {
     "enabled": true,
+    "ai_provider": "gemini_cli",
+    "gemini_model": null,
     "allowed_suppression_categories": [
       "active-review",
       "waiting-for-author",
-      "blocked-by-dependency"
+      "blocked-by-dependency",
+      "work-in-progress"
     ],
     "confidence_threshold": 0.8,
     "max_comments_to_inspect": 10,

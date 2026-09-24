@@ -6,7 +6,11 @@ import datetime as dt
 import fnmatch
 import json
 import os
+import re
+import shutil
+import subprocess
 import sys
+import tempfile
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -29,6 +33,21 @@ DEFAULT_CONFIG = {
     "exempt_branch_patterns": ["main", "master", "develop", "release/*", "hotfix/*"],
     "protected_label": "Do_Not_Delete",
     "additional_mentions": [],
+    "ai_config": {
+        "enabled": True,
+        "ai_provider": "gemini_cli",
+        "gemini_model": None,
+        "allowed_suppression_categories": [
+            "active-review",
+            "waiting-for-author",
+            "blocked-by-dependency",
+            "work-in-progress",
+        ],
+        "confidence_threshold": 0.8,
+        "max_comments_to_inspect": 10,
+        "author_only_comments_count": False,
+        "log_decisions": True,
+    },
 }
 
 
@@ -41,6 +60,8 @@ class AIDecision:
     confidence: float
     reason: str
     final_action: str
+    provider: str = "heuristic"
+    fallback_reason: str | None = None
 
 
 @dataclass
@@ -419,17 +440,137 @@ def evaluate_pr_with_ai(
         confidence=confidence,
         reason=reason,
         final_action=final_action,
+        provider="heuristic",
+    )
+
+
+def build_ai_prompt(pr: dict[str, Any], baseline_stage: str) -> str:
+    pr_number = int(pr.get("number", 0))
+    title = str(pr.get("title", ""))
+    body = str(pr.get("body", ""))
+    return f"""You are helping a GitHub stale pull request cleaner make a conservative recommendation.
+
+Pull request #{pr_number}: {title}
+
+Description:
+{body if body else "(no description)"}
+
+Current stale stage: {baseline_stage}
+
+Decide whether the pull request still appears active enough that stale handling should be suppressed.
+
+Return exactly one JSON object and no surrounding text:
+{{
+  "is_active": true,
+  "category": "active-review",
+  "confidence": 0.0,
+  "reason": "brief explanation"
+}}
+
+Rules:
+- Be conservative.
+- Use is_active=true only when there is strong evidence the PR is still active.
+- category must be one of: active-review, waiting-for-author, blocked-by-dependency, work-in-progress, abandoned, needs-attention.
+- confidence must be a number between 0.0 and 1.0.
+- reason must be brief and under 160 characters.
+- Do not use tools.
+- Output JSON only.
+"""
+
+
+def extract_json_object(text: str) -> dict[str, Any]:
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if not match:
+        raise ValueError("No JSON object found in AI response")
+    return json.loads(match.group(0))
+
+
+def decision_from_ai_result(
+    pr_number: int,
+    baseline_stage: str,
+    ai_config: dict[str, Any],
+    provider: str,
+    result: dict[str, Any],
+) -> AIDecision:
+    decision = "suppress" if result.get("is_active") else "keep_stale"
+    category = str(result.get("category", "needs-attention"))
+    confidence = float(result.get("confidence", 0.0))
+    reason = str(result.get("reason", f"{provider} analysis"))
+    threshold = float(ai_config.get("confidence_threshold", 0.8))
+    final_action = decision if confidence >= threshold else "defer"
+    return AIDecision(
+        pr_number=pr_number,
+        baseline_stage=baseline_stage,
+        decision=decision,
+        category=category,
+        confidence=confidence,
+        reason=reason,
+        final_action=final_action,
+        provider=provider,
+    )
+
+
+def evaluate_pr_with_gemini_cli(
+    pr: dict[str, Any],
+    baseline_stage: str,
+    ai_config: dict[str, Any],
+) -> AIDecision:
+    if shutil.which("gemini") is None:
+        raise RuntimeError("gemini CLI is not installed or not on PATH")
+
+    command = [
+        "gemini",
+        "--skip-trust",
+        "--sandbox",
+        "--output-format",
+        "text",
+        "-p",
+        build_ai_prompt(pr, baseline_stage),
+    ]
+    model = ai_config.get("gemini_model")
+    if model:
+        command.extend(["--model", str(model)])
+
+    with tempfile.TemporaryDirectory(prefix="stale-cleaner-gemini-") as temp_dir:
+        result = subprocess.run(
+            command,
+            cwd=temp_dir,
+            capture_output=True,
+            text=True,
+            check=False,
+            env={**os.environ, "NO_COLOR": "1"},
+        )
+
+    if result.returncode != 0:
+        detail = (result.stderr or result.stdout or "").strip()
+        raise RuntimeError(detail or f"gemini CLI exited with status {result.returncode}")
+
+    payload = (result.stdout or "").strip()
+    parsed = extract_json_object(payload)
+    return decision_from_ai_result(
+        int(pr.get("number", 0)),
+        baseline_stage,
+        ai_config,
+        "gemini_cli",
+        parsed,
     )
 
 
 def log_ai_decision(decision: AIDecision, dry_run: bool = False) -> None:
     """Log AI decision for transparency."""
     mode = "DRY_RUN" if dry_run else "APPLY"
+    provider_label = {
+        "heuristic": "Heuristic",
+        "gemini_cli": "Gemini CLI",
+    }.get(decision.provider, decision.provider)
+    fallback_suffix = (
+        f" | Fallback: {decision.fallback_reason}" if decision.fallback_reason else ""
+    )
     print(
-        f"[AI] PR #{decision.pr_number} | Stage: {decision.baseline_stage} | "
+        f"[{provider_label}-AI] PR #{decision.pr_number} | Stage: {decision.baseline_stage} | "
         f"Decision: {decision.decision} | Category: {decision.category} | "
         f"Confidence: {decision.confidence:.1%} | Action: {decision.final_action} | "
-        f"Reason: {decision.reason} ({mode})"
+        f"Reason: {decision.reason} ({mode}){fallback_suffix}"
     )
 
 
@@ -453,84 +594,108 @@ def process_pull_requests(
     )
 
     for pr in client.open_pull_requests():
-        summary.prs_processed += 1
-        number = int(pr["number"])
-        current_labels = client.issue_labels(number)
-        current_label_names = label_names(current_labels)
+        try:
+            summary.prs_processed += 1
+            number = int(pr["number"])
+            current_labels = client.issue_labels(number)
+            current_label_names = label_names(current_labels)
 
-        if current_label_names & exempt_labels:
-            summary.prs_skipped_exempt += 1
-            continue
+            if current_label_names & exempt_labels:
+                summary.prs_skipped_exempt += 1
+                continue
 
-        commit_times = most_recent_timestamps(
-            client.pull_request_commits(number), "commit.commit.author.date"
-        )
-        # Pull request commits nest the timestamp in commit.commit.author.date, so parse explicitly.
-        commit_times = []
-        for commit in client.pull_request_commits(number):
-            commit_data = commit.get("commit", {}).get("commit", {})
-            for candidate in ("author", "committer"):
-                timestamp = commit_data.get(candidate, {}).get("date")
-                if timestamp:
-                    commit_times.append(parse_datetime(timestamp))
-        review_times = []
-        for review in client.pull_request_reviews(number):
-            if review.get("submitted_at"):
-                review_times.append(parse_datetime(review["submitted_at"]))
+            commit_times = most_recent_timestamps(
+                client.pull_request_commits(number), "commit.commit.author.date"
+            )
+            # Pull request commits nest the timestamp in commit.commit.author.date, so parse explicitly.
+            commit_times = []
+            for commit in client.pull_request_commits(number):
+                commit_data = commit.get("commit", {}).get("commit", {})
+                for candidate in ("author", "committer"):
+                    timestamp = commit_data.get(candidate, {}).get("date")
+                    if timestamp:
+                        commit_times.append(parse_datetime(timestamp))
+            review_times = []
+            for review in client.pull_request_reviews(number):
+                if review.get("submitted_at"):
+                    review_times.append(parse_datetime(review["submitted_at"]))
 
-        created_at = parse_datetime(pr["created_at"])
-        last_activity = latest_activity(commit_times, review_times, created_at)
-        days_inactive = days_between(last_activity, now)
-        stage = stale_stage_for_days(days_inactive, config["pull_request_thresholds"])
-        summary.stale_counts[stage] += 1
+            created_at = parse_datetime(pr["created_at"])
+            last_activity = latest_activity(commit_times, review_times, created_at)
+            days_inactive = days_between(last_activity, now)
+            stage = stale_stage_for_days(days_inactive, config["pull_request_thresholds"])
+            summary.stale_counts[stage] += 1
 
-        # Phase 1: AI evaluation for observability
-        ai_decision = None
-        if stage != "active" and ai_config.get("enabled"):
-            ai_decision = evaluate_pr_with_ai(pr, stage, ai_config)
-            summary.ai_reviewed += 1
+            # Phase 1: AI evaluation for observability
+            ai_decision = None
+            ai_provider = str(ai_config.get("ai_provider", "heuristic")).strip().lower()
+            if stage != "active" and ai_config.get("enabled"):
+                summary.ai_reviewed += 1
+                try:
+                    if ai_provider == "gemini_cli":
+                        ai_decision = evaluate_pr_with_gemini_cli(pr, stage, ai_config)
+                    else:
+                        ai_decision = evaluate_pr_with_ai(pr, stage, ai_config)
+                except Exception as exc:
+                    summary.ai_fallbacks += 1
+                    ai_decision = evaluate_pr_with_ai(pr, stage, ai_config)
+                    if ai_decision:
+                        ai_decision.reason = f"{ai_decision.reason}; fallback from {ai_provider}"
+                        ai_decision.fallback_reason = str(exc)
+
             if ai_decision:
                 if ai_config.get("log_decisions"):
                     log_ai_decision(ai_decision, dry_run=dry_run)
                 summary.ai_decisions.append(ai_decision)
                 # Phase 1: AI only logs, does not suppress
-                if ai_decision.final_action == "suppress" and ai_decision.category in ai_config.get("allowed_suppression_categories", []):
+                allowed_categories = {
+                    str(category).strip().lower()
+                    for category in ai_config.get("allowed_suppression_categories", [])
+                }
+                if (
+                    ai_decision.final_action == "suppress"
+                    and ai_decision.category.strip().lower() in allowed_categories
+                ):
                     summary.ai_suppressed += 1
 
-        target_label = {
-            "warning": "stale:warning",
-            "escalated": "stale:escalated",
-            "final-notice": "stale:final-notice",
-        }.get(stage)
+            target_label = {
+                "warning": "stale:warning",
+                "escalated": "stale:escalated",
+                "final-notice": "stale:final-notice",
+            }.get(stage)
 
-        managed_current = [
-            label
-            for label in config["managed_labels"]
-            if label.lower() in current_label_names
-        ]
-        if stage == "active":
-            if managed_current:
-                summary.cleared_stale_labels += 1
+            managed_current = [
+                label
+                for label in config["managed_labels"]
+                if label.lower() in current_label_names
+            ]
+            if stage == "active":
+                if managed_current:
+                    summary.cleared_stale_labels += 1
+                    if not dry_run:
+                        for label in managed_current:
+                            client.remove_issue_label(number, label)
+                continue
+
+            if managed_current != [target_label]:
                 if not dry_run:
                     for label in managed_current:
-                        client.remove_issue_label(number, label)
-            continue
+                        if label != target_label:
+                            client.remove_issue_label(number, label)
+                    if target_label not in current_label_names:
+                        client.add_issue_labels(number, [target_label])
 
-        if managed_current != [target_label]:
-            if not dry_run:
-                for label in managed_current:
-                    if label != target_label:
-                        client.remove_issue_label(number, label)
-                if target_label not in current_label_names:
-                    client.add_issue_labels(number, [target_label])
-
-        mentions = unique_mentions(
-            repo_owner, pr, config.get("additional_mentions", [])
-        )
-        if not dry_run:
-            client.add_comment(
-                number, comment_body(stage, days_inactive, mentions, number)
+            mentions = unique_mentions(
+                repo_owner, pr, config.get("additional_mentions", [])
             )
+            if not dry_run:
+                client.add_comment(
+                    number, comment_body(stage, days_inactive, mentions, number)
+                )
+        except KeyError as e:
+            pr_number = pr.get("number", "unknown")
+            print(f"Skipping PR #{pr_number} due to missing key: {e}", file=sys.stderr)
+            summary.ai_fallbacks += 1
 
 
 def branch_age_days(
@@ -632,7 +797,7 @@ def write_summary(summary: RunSummary) -> None:
             lines.append("### PRs AI Flagged for Suppression")
             for decision in suppressed:
                 lines.append(
-                    f"- PR #{decision.pr_number}: {decision.category} "
+                    f"- PR #{decision.pr_number}: {decision.category} via {decision.provider} "
                     f"(confidence: {decision.confidence:.1%}) - {decision.reason}"
                 )
         
@@ -640,7 +805,7 @@ def write_summary(summary: RunSummary) -> None:
             lines.append("### PRs AI Reviewed But Left Stale")
             for decision in reviewed:
                 lines.append(
-                    f"- PR #{decision.pr_number}: Insufficient evidence "
+                    f"- PR #{decision.pr_number}: Reviewed via {decision.provider} "
                     f"(confidence: {decision.confidence:.1%}) - {decision.reason}"
                 )
     

@@ -1,11 +1,4 @@
-{
-  "enabled": true,
-  "allowed_suppression_categories": ["active-review", "waiting-for-author", "blocked-by-dependency", "work-in-progress"],
-  "confidence_threshold": 0.8,
-  "max_comments_to_inspect": 10,
-  "author_only_comments_count": false,
-  "log_decisions": true
-}››# PR Cleaner
+# PR Cleaner
 
 This repository includes a GitHub Actions workflow that manages stale pull requests and stale branches.
 
@@ -13,7 +6,7 @@ This repository includes a GitHub Actions workflow that manages stale pull reque
 
 - File: `.github/workflows/stale-cleaner.yml`
 - Schedule: weekdays at 08:20 UTC
-- Manual runs default to real mode
+- Manual runs default to dry-run mode
 
 ## Runtime configuration
 
@@ -22,7 +15,7 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 - `GITHUB_TOKEN` — required
 - `GITHUB_REPOSITORY` — required
 - `CONFIG_PATH` — optional, defaults to `.github/stale-cleaner.json`
-- `DRY_RUN` — optional, defaults to `false` for scheduled runs and for manual runs unless `dry_run` is explicitly enabled
+- `DRY_RUN` — optional, defaults to `true`
 - `GITHUB_API_URL` — optional, defaults to `https://api.github.com`
 - `GITHUB_STEP_SUMMARY` — optional
 
@@ -30,7 +23,7 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 
 The cleaner:
 
-1. Ensures the managed stale labels exist.
+1. Ensures the managed stale labels exist in apply mode.
 2. Reviews open pull requests and applies stale labels when inactivity crosses configured thresholds.
 3. Posts reminder comments with mentions for the PR author and reviewers.
 4. Removes stale labels when activity resumes.
@@ -46,34 +39,35 @@ The cleaner:
 
 ## AI Agent Capabilities (Phase 1)
 
-### Overview
+Phase 1 now supports a **real local AI model** using the `gemini` CLI available on your machine, with heuristic fallback when the local model is unavailable.
 
-Phase 1 adds **observable and safe** AI capabilities to the PR Cleaner. The AI assists with PR stale-management decisions while maintaining full transparency and requiring explicit configuration.
+### Supported providers
 
-### What the AI does
+`ai_config.ai_provider` supports:
 
-**In Phase 1, the AI:**
-- Reviews stale PRs for activity indicators in titles and descriptions
-- Detects patterns like WIP (work-in-progress), draft, waiting, or blocked markers
-- Flags PRs that appear to still be under active review despite age
-- Logs all decisions for transparency and auditing
-- Does **not** automatically suppress stale labels (only logs recommendations)
-- Falls back gracefully to default behavior on low confidence
+- `"gemini_cli"` — real local Gemini model via the installed `gemini` command
+- `"heuristic"` — no external/local model, rules-only fallback
 
-**In future phases, the AI will:**
-- Analyze PR comments and review threads
-- Build more sophisticated activity models
-- Optionally suppress stale labels for high-confidence cases
-- Learn from human overrides
+## Important note about Copilot
 
-### Configuration
+From what is currently available on this machine:
 
-AI settings live in `.github/stale-cleaner.json`:
+- `gemini` is installed and scriptable from the terminal
+- `gh copilot` is **not** currently available as a scriptable CLI command here
+
+That means the cleaner can use **Gemini right now** as the real model.
+If your employer later provides a scriptable Copilot CLI command, the cleaner can be extended to call it too.
+
+## AI configuration
+
+Configured in `.github/stale-cleaner.json`:
 
 ```json
 {
   "ai_config": {
     "enabled": true,
+    "ai_provider": "gemini_cli",
+    "gemini_model": null,
     "allowed_suppression_categories": [
       "active-review",
       "waiting-for-author",
@@ -88,80 +82,84 @@ AI settings live in `.github/stale-cleaner.json`:
 }
 ```
 
-**Configuration options:**
+### Configuration knobs
 
-- `enabled` — Set to `false` to disable AI evaluation entirely
-- `allowed_suppression_categories` — Categories the AI can recommend suppressing (Phase 1: logged only)
-- `confidence_threshold` — Minimum confidence (0.0–1.0) required for AI to recommend action
-- `max_comments_to_inspect` — Limit API calls by inspecting only recent comments
-- `author_only_comments_count` — Whether to count only author comments as activity
-- `log_decisions` — Set to `false` to suppress AI decision logging
+- `enabled` — turns AI review on or off
+- `ai_provider` — `gemini_cli` or `heuristic`
+- `gemini_model` — optional Gemini model name to pass to `gemini --model`
+- `allowed_suppression_categories` — categories counted as AI suppression recommendations
+- `confidence_threshold` — minimum confidence required before AI recommends suppression
+- `max_comments_to_inspect` — reserved for future comment-analysis support
+- `author_only_comments_count` — reserved for future activity-analysis support
+- `log_decisions` — enables per-PR AI decision logs
 
-### AI Summary Section
+## How Gemini is invoked safely
 
-The workflow summary now includes an AI Agent Metrics section:
+The cleaner runs Gemini in a **temporary directory** instead of your repository so the CLI does not act directly on repo files.
+It also asks Gemini to:
 
+- output **JSON only**
+- avoid tool use
+- make a **conservative** stale-suppression recommendation
+
+If Gemini is unavailable or fails, the cleaner falls back to the heuristic evaluator and increments the fallback metric.
+
+## Summary metrics
+
+The workflow summary includes:
+
+- PRs reviewed by AI
+- PRs flagged for suppression
+- AI fallback/errors
+- PRs AI flagged for suppression, with provider and rationale
+- PRs AI reviewed but left stale, with provider and rationale
+
+## Dry-run logging
+
+Example Gemini-backed log output:
+
+```text
+[Gemini CLI-AI] PR #42 | Stage: warning | Decision: keep_stale | Category: needs-attention | Confidence: 86.0% | Action: keep_stale | Reason: No strong signal of active review in the PR title or description (DRY_RUN)
 ```
-## AI Agent Metrics
-- PRs reviewed by AI: 5
-- PRs flagged for suppression: 2
-- AI fallback/errors: 0
 
-## AI Decision Details
+Example fallback log output:
 
-### PRs AI Flagged for Suppression
-- PR #42: work-in-progress (confidence: 70%) - Detected WIP/draft/waiting indicators in PR title or description
-- PR #43: active-review (confidence: 60%) - Detected recent activity indicators in PR metadata
-
-### PRs AI Reviewed But Left Stale
-- PR #44: Insufficient evidence (confidence: 50%) - Phase 1: Conservative mode
+```text
+[Heuristic-AI] PR #42 | Stage: warning | Decision: suppress | Category: work-in-progress | Confidence: 70.0% | Action: defer | Reason: Detected WIP/draft/waiting indicators in PR title or description; fallback from gemini_cli (DRY_RUN) | Fallback: gemini CLI exited with status 1
 ```
 
-### Logging and Observability
+## Local run examples
 
-When `log_decisions` is enabled, each AI decision generates a log line:
-
-```
-[AI] PR #42 | Stage: warning | Decision: suppress | Category: work-in-progress | Confidence: 70% | Action: suppress | Reason: Detected WIP/draft/waiting indicators... (DRY_RUN)
-```
-
-This makes it easy to:
-- Audit AI behavior
-- Debug why a PR was or wasn't marked stale
-- Adjust thresholds based on real-world results
-
-### Safety by Design
-
-Phase 1 prioritizes **safety and transparency** over automation:
-
-1. **No mutations in dry-run** — AI decisions are logged but never applied during dry runs
-2. **Conservative defaults** — Confidence thresholds are high (0.8) so only clear cases trigger recommendations
-3. **Explicit allow-lists** — Only configured suppression categories can trigger recommendations
-4. **Fallback on error** — Any AI failure gracefully reverts to default behavior
-5. **Human-in-the-loop** — Even when confident, Phase 1 AI only logs, doesn't suppress
-
-### Testing AI Decisions
-
-Run the test suite to validate AI behavior:
+### Real AI with local Gemini
 
 ```bash
-python3 .github/scripts/test_stale_cleaner.py
+export GITHUB_TOKEN="your-token"
+export GITHUB_REPOSITORY="sheila-rodriguez-mobile/AIProjectDemoRepo"
+export DRY_RUN="true"
+python3 .github/scripts/stale_cleaner.py
 ```
 
-Tests include:
-- AI disabling with `enabled: false`
-- WIP/draft/waiting detection
-- Active-review indicator detection
-- Confidence threshold enforcement
-- RunSummary AI field initialization
+### Force heuristic mode
 
-### Tuning AI for Your Repo
+```bash
+python3 - <<'PY'
+import json
+from pathlib import Path
+path = Path('.github/stale-cleaner.json')
+config = json.loads(path.read_text())
+config['ai_config']['ai_provider'] = 'heuristic'
+path.write_text(json.dumps(config, indent=2) + '\n')
+PY
+python3 .github/scripts/stale_cleaner.py
+```
 
-1. **Enable logging** and run a few cycles to see what decisions the AI makes
-2. **Review the summary** to understand which PRs get flagged and why
-3. **Adjust `confidence_threshold`** if too many false positives or false negatives
-4. **Add/remove categories** from `allowed_suppression_categories` based on your workflow
-5. **Gradually migrate to suppression** (Phase 2+) once you trust the AI
+## Important runtime note
+
+A GitHub-hosted Actions runner typically will **not** have your local `gemini` CLI installed or authenticated.
+So:
+
+- **local runs on your machine** can use real Gemini AI
+- **GitHub workflow runs** will likely fall back to heuristics unless you use a self-hosted runner with Gemini installed and authenticated
 
 ## Local validation
 
