@@ -18,6 +18,8 @@ struct ContentView: View {
         [.zero, .clear, .equals, .add]
     ]
 
+    let utilityButtons: [CalculatorButton] = [.percent]
+
     var body: some View {
         ZStack {
             // Modern gradient background
@@ -37,7 +39,7 @@ struct ContentView: View {
                     Text("Calculator")
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
-                    Text("Supports +, -, ×, ÷")
+                    Text("Supports +, -, ×, ÷, %")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                 }
@@ -65,6 +67,25 @@ struct ContentView: View {
                 )
                 .padding(.horizontal, 16)
                 .padding(.bottom, 32)
+
+                // Utility buttons
+                HStack(spacing: 16) {
+                    ForEach(utilityButtons, id: \.self) { button in
+                        Button(action: {
+                            self.didTap(button: button)
+                        }) {
+                            Text(button.rawValue)
+                                .font(.system(size: 20, weight: .semibold, design: .default))
+                                .frame(maxWidth: .infinity, minHeight: 56)
+                                .foregroundColor(.white)
+                                .background(button.buttonColor)
+                                .cornerRadius(16)
+                                .shadow(color: Color.black.opacity(0.25), radius: 6, x: 0, y: 3)
+                        }
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.bottom, 16)
 
                 // Buttons
                 VStack(spacing: 16) {
@@ -127,13 +148,26 @@ struct ContentView: View {
                         }
 
                         runningSum = result
-                        currentValue = "\(runningSum)"
+                        currentValue = formatValue(runningSum)
                     }
 
                     currentOperation = selectedOperation
                     shouldClearDisplay = true
                 }
             }
+        case .percent:
+            guard let value = Double(currentValue) else {
+                return
+            }
+
+            let percentValue: Double
+            if (currentOperation == .add || currentOperation == .subtract), runningSum != 0 {
+                percentValue = runningSum * value / 100
+            } else {
+                percentValue = value / 100
+            }
+
+            currentValue = formatValue(percentValue)
         case .equals:
             if let value = Double(currentValue) {
                 let result: Double
@@ -150,7 +184,7 @@ struct ContentView: View {
                     result = computedResult
                 }
 
-                currentValue = "\(result)"
+                currentValue = formatValue(result)
                 runningSum = result
                 currentOperation = .none
                 shouldClearDisplay = true
@@ -190,6 +224,19 @@ struct ContentView: View {
         }
     }
 
+    private func formatValue(_ value: Double) -> String {
+        if value.isNaN || value.isInfinite {
+            return "Error"
+        }
+
+        let rounded = value.rounded()
+        if abs(value - rounded) < 0.0000001 {
+            return String(Int(rounded))
+        }
+
+        return String(value)
+    }
+
     private func showError() {
         currentValue = "Error"
         runningSum = 0
@@ -201,12 +248,14 @@ struct ContentView: View {
 enum CalculatorButton: String {
     case zero = "0", one = "1", two = "2", three = "3", four = "4", five = "5", six = "6", seven = "7", eight = "8", nine = "9"
     case equals = "=", add = "+", subtract = "-", multiply = "×", divide = "÷"
-    case clear = "AC"
+    case clear = "AC", percent = "%"
 
     var buttonColor: Color {
         switch self {
         case .add, .subtract, .multiply, .divide, .equals:
             return Color(red: 1.0, green: 0.65, blue: 0.0)
+        case .percent:
+            return Color(red: 0.2, green: 0.55, blue: 0.85)
         case .clear:
             return Color(red: 0.6, green: 0.6, blue: 0.6)
         default:
