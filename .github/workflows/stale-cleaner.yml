@@ -29,7 +29,7 @@ jobs:
           python-version: '3.11'
 
       - name: Run unit tests
-        run: python3 .github/scripts/test_stale_cleaner.py
+        run: python3 -m unittest discover -s .github/scripts -p "test_*.py"
 
       - name: Run PR cleaner
         env:
@@ -38,3 +38,13 @@ jobs:
           CONFIG_PATH: .github/stale-cleaner.json
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true && 'true' || 'false' }}
         run: python3 .github/scripts/stale_cleaner.py
+
+      - name: Upload run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: stale-cleaner-report
+          path: |
+            .github/stale-cleaner-report.json
+            .github/stale-cleaner-history.jsonl
+          if-no-files-found: ignore

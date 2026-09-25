@@ -1,72 +1,413 @@
 {
-  "report_version": 1,
-  "generated_at": "2026-09-25T15:30:57.084539+00:00",
+  "report_version": 2,
+  "generated_at": "2026-09-25T18:41:07.695553+00:00",
   "run_mode": "apply",
   "prs_processed": 7,
   "prs_skipped_exempt": 0,
+  "prs_failed": 0,
   "stale_counts": {
     "active": 3,
     "warning": 0,
-    "escalated": 2,
-    "final-notice": 2
+    "escalated": 0,
+    "final-notice": 4
   },
   "cleared_stale_labels": 0,
-  "branches_processed": 17,
+  "comments_posted": 2,
+  "comments_skipped_duplicate": 2,
+  "branches_processed": 18,
   "stale_branches": [],
   "delete_candidates": [],
   "deleted_branches": [],
+  "branch_delete_failures": [],
   "protected_by_labels": [
     "PR-Cleaner"
+  ],
+  "ai_reviewed": 4,
+  "ai_suppressed": 0,
+  "ai_fallbacks": 0,
+  "ai_state_counts": {
+    "stale": 3,
+    "active_discussion": 0,
+    "awaiting_external": 0,
+    "awaiting_reviewer": 0,
+    "blocked": 1,
+    "candidate_for_closure": 0
+  },
+  "ai_decisions": [
+    {
+      "pr_number": 2,
+      "baseline_stage": "final-notice",
+      "state": "blocked",
+      "decision": "keep_stale",
+      "category": "blocked",
+      "confidence": 0.85,
+      "reason": "Merge conflicts (mergeable_state=dirty) block progress; author must resolve.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment",
+        "ping_author"
+      ],
+      "comment_style": "merge_conflict",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 1,
+      "baseline_stage": "final-notice",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
+      "confidence": 0.6,
+      "reason": "No active signals; 8 days inactive with no review requests, threads, or blockers detected.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment"
+      ],
+      "comment_style": "generic_stale_notice",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 8,
+      "baseline_stage": "final-notice",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
+      "confidence": 0.6,
+      "reason": "No reviews, checks, or blockers detected; only inactivity signal present.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment"
+      ],
+      "comment_style": "generic_stale",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 11,
+      "baseline_stage": "final-notice",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
+      "confidence": 0.6,
+      "reason": "No review requests, threads, or blockers; already at final-notice stage with continued inactivity.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment"
+      ],
+      "comment_style": "final_notice",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    }
   ],
   "ai": {
     "reviewed": 4,
     "suppressed": 0,
     "fallbacks": 0,
+    "state_counts": {
+      "stale": 3,
+      "active_discussion": 0,
+      "awaiting_external": 0,
+      "awaiting_reviewer": 0,
+      "blocked": 1,
+      "candidate_for_closure": 0
+    },
     "decisions": [
       {
         "pr_number": 2,
         "baseline_stage": "final-notice",
+        "state": "blocked",
         "decision": "keep_stale",
-        "category": "needs-attention",
-        "confidence": 0.9,
-        "reason": "The PR has reached the 'final-notice' stage, indicating no new commits or reviews have been submitted in over 21 days. The work requires review to proceed.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
+        "category": "blocked",
+        "confidence": 0.85,
+        "reason": "Merge conflicts (mergeable_state=dirty) block progress; author must resolve.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment",
+          "ping_author"
+        ],
+        "comment_style": "merge_conflict",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
         "fallback_reason": null
       },
       {
         "pr_number": 1,
         "baseline_stage": "final-notice",
+        "state": "stale",
         "decision": "keep_stale",
-        "category": "abandoned",
-        "confidence": 0.9,
-        "reason": "The pull request is in the final notice stage with no recent activity indicated.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 11,
-        "baseline_stage": "escalated",
-        "decision": "keep_stale",
-        "category": "abandoned",
-        "confidence": 0.8,
-        "reason": "The pull request has an escalated stale stage and lacks any indication of recent activity or discussion.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
+        "category": "stale",
+        "confidence": 0.6,
+        "reason": "No active signals; 8 days inactive with no review requests, threads, or blockers detected.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment"
+        ],
+        "comment_style": "generic_stale_notice",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
         "fallback_reason": null
       },
       {
         "pr_number": 8,
-        "baseline_stage": "escalated",
+        "baseline_stage": "final-notice",
+        "state": "stale",
         "decision": "keep_stale",
-        "category": "abandoned",
-        "confidence": 0.9,
-        "reason": "The PR has a minimal description and no clear evidence of recent activity, and has already been escalated as stale.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
+        "category": "stale",
+        "confidence": 0.6,
+        "reason": "No reviews, checks, or blockers detected; only inactivity signal present.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment"
+        ],
+        "comment_style": "generic_stale",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
+        "fallback_reason": null
+      },
+      {
+        "pr_number": 11,
+        "baseline_stage": "final-notice",
+        "state": "stale",
+        "decision": "keep_stale",
+        "category": "stale",
+        "confidence": 0.6,
+        "reason": "No review requests, threads, or blockers; already at final-notice stage with continued inactivity.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment"
+        ],
+        "comment_style": "final_notice",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
         "fallback_reason": null
       }
     ]
-  }
+  },
+  "branch_risk_counts": {
+    "likely_safe_to_delete": 0,
+    "maybe_preserve": 2,
+    "requires_review": 16
+  },
+  "branch_risk_assessments": [
+    {
+      "branch_name": "PR-Cleaner",
+      "risk_state": "maybe_preserve",
+      "score": 0.94,
+      "reason": "Protected by a Do_Not_Delete PR label",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "calculator/division",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 5,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "calculator/multiplication",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 4,
+      "associated_prs": 2,
+      "open_prs": 2,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "calculator/percentages",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 1,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "calculator/substraction",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "calculator/sum",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 8,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-adds-ai-agent-capabilities",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 1,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-corrects-color-coding",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 4,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-dashboard",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 0,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-feat-for-cleaner",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-fixes",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-inproves-color-coding",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 4,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-phase2",
+      "risk_state": "requires_review",
+      "score": 0.88,
+      "reason": "Branch still has an open pull request",
+      "age_days": 0,
+      "associated_prs": 1,
+      "open_prs": 1,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-run-in-real-mode",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 5,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-updates-threshold-range",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 4,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "demo-updates-thresholds",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    },
+    {
+      "branch_name": "main",
+      "risk_state": "maybe_preserve",
+      "score": 0.96,
+      "reason": "Default, protected, or exempt branch",
+      "age_days": 0,
+      "associated_prs": 0,
+      "open_prs": 0,
+      "protected": true,
+      "exempt": true
+    },
+    {
+      "branch_name": "stale-pr-cleaner",
+      "risk_state": "requires_review",
+      "score": 0.42,
+      "reason": "Recently updated branch",
+      "age_days": 7,
+      "associated_prs": 1,
+      "open_prs": 0,
+      "protected": false,
+      "exempt": false
+    }
+  ],
+  "errors": []
 }
