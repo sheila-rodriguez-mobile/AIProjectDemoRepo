@@ -18,7 +18,7 @@ struct ContentView: View {
         [.zero, .clear, .equals, .add]
     ]
 
-    let utilityButtons: [CalculatorButton] = [.percent]
+    let utilityButtons: [CalculatorButton] = [.percent, .squareRoot]
 
     var body: some View {
         ZStack {
@@ -39,7 +39,7 @@ struct ContentView: View {
                     Text("Calculator")
                         .font(.system(size: 28, weight: .semibold, design: .rounded))
                         .foregroundColor(.white.opacity(0.7))
-                    Text("Supports +, -, ×, ÷, %")
+                    Text("Supports +, -, ×, ÷, %, √")
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(.white.opacity(0.45))
                 }
@@ -168,6 +168,15 @@ struct ContentView: View {
             }
 
             currentValue = formatValue(percentValue)
+        case .squareRoot:
+            guard let value = Double(currentValue), value >= 0 else {
+                showError()
+                return
+            }
+
+            let squareRootValue = value.squareRoot()
+            currentValue = formatValue(squareRootValue)
+            shouldClearDisplay = true
         case .equals:
             if let value = Double(currentValue) {
                 let result: Double
@@ -248,13 +257,13 @@ struct ContentView: View {
 enum CalculatorButton: String {
     case zero = "0", one = "1", two = "2", three = "3", four = "4", five = "5", six = "6", seven = "7", eight = "8", nine = "9"
     case equals = "=", add = "+", subtract = "-", multiply = "×", divide = "÷"
-    case clear = "AC", percent = "%"
+    case clear = "AC", percent = "%", squareRoot = "√"
 
     var buttonColor: Color {
         switch self {
         case .add, .subtract, .multiply, .divide, .equals:
             return Color(red: 1.0, green: 0.65, blue: 0.0)
-        case .percent:
+        case .percent, .squareRoot:
             return Color(red: 0.2, green: 0.55, blue: 0.85)
         case .clear:
             return Color(red: 0.6, green: 0.6, blue: 0.6)
