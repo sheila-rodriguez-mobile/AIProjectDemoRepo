@@ -15,8 +15,8 @@
     "stale:final-notice"
   ],
   "branch_thresholds": {
-    "stale_days": 30,
-    "delete_candidate_days": 60
+    "stale_days": 8,
+    "delete_candidate_days": 10
   },
   "exempt_branch_patterns": [
     "main",

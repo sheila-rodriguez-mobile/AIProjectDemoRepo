@@ -19,6 +19,7 @@ Environment variables used by `.github/scripts/stale_cleaner.py`:
 - `GITHUB_API_URL` — optional, defaults to `https://api.github.com`
 - `GITHUB_STEP_SUMMARY` — optional
 - `STALE_CLEANER_REPORT_PATH` — optional, defaults to `.github/stale-cleaner-report.json`
+- `STALE_CLEANER_HISTORY_PATH` — optional, defaults to `.github/stale-cleaner-history.jsonl`
 
 ## Behavior summary
 
@@ -32,12 +33,18 @@ The cleaner:
 6. Skips protected, exempt, or PR-associated branches.
 7. Deletes eligible branches when `DRY_RUN=false`.
 8. Writes a structured JSON report for the local dashboard and other tooling.
+9. Appends each run to a local history file so the dashboard can show trends.
 
 ## Pull request inactivity thresholds
 
 - Warning (yellow): 2-3 days inactive
 - Escalated (orange): 4-6 days inactive
 - Final notice (red): more than 6 days inactive
+
+## Branch staleness thresholds
+
+- Stale: 8 days without activity
+- Delete candidate: 10 days without activity
 
 ## AI Agent Capabilities (Phase 1)
 
@@ -187,6 +194,14 @@ That JSON includes:
 - AI decision details
 - branch lists
 
+The cleaner also appends run snapshots to:
+
+```text
+.github/stale-cleaner-history.jsonl
+```
+
+That history enables trend charts and recent-run comparisons.
+
 ### 1. Run the cleaner
 
 ```bash
@@ -208,8 +223,13 @@ http://127.0.0.1:8765
 ### Dashboard features
 
 - summary cards for PR, branch, and AI counts
+- executive-summary bullets for regular employees
 - PR stale-count breakdown
+- visual bar charts for stage distribution, operational pressure, and branch workload
+- visual chart for AI decision categories
+- recent-run trend chart for stale PRs, delete candidates, and AI fallbacks
 - AI decision list with provider, confidence, and rationale
+- recent-runs table for lightweight analysis
 - stale/protected/delete-candidate branch lists
 - raw JSON payload for debugging
 
@@ -217,11 +237,15 @@ http://127.0.0.1:8765
 
 ```bash
 export STALE_CLEANER_REPORT_PATH="/tmp/stale-cleaner-report.json"
+export STALE_CLEANER_HISTORY_PATH="/tmp/stale-cleaner-history.jsonl"
 python3 .github/scripts/stale_cleaner.py
-python3 .github/scripts/stale_cleaner_dashboard.py --report /tmp/stale-cleaner-report.json
+python3 .github/scripts/stale_cleaner_dashboard.py --report /tmp/stale-cleaner-report.json --history /tmp/stale-cleaner-history.jsonl
 ```
 
 ## Important runtime note for the dashboard
 
 The dashboard only shows what exists in the latest report file.
 If the cleaner has not run yet, or if the report path is changed, the dashboard will show that the report is missing until a new run writes it.
+
+Trend charts also depend on the history file.
+If you only have one run, the dashboard will still work, but history-based charts will become more useful after multiple runs.

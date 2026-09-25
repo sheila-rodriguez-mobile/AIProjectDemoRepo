@@ -1,16 +1,17 @@
 {
-  "generated_at": "2026-09-24T17:18:58.811915+00:00",
+  "report_version": 1,
+  "generated_at": "2026-09-25T15:30:57.084539+00:00",
   "run_mode": "apply",
-  "prs_processed": 6,
+  "prs_processed": 7,
   "prs_skipped_exempt": 0,
   "stale_counts": {
-    "active": 1,
-    "warning": 1,
-    "escalated": 3,
-    "final-notice": 1
+    "active": 3,
+    "warning": 0,
+    "escalated": 2,
+    "final-notice": 2
   },
   "cleared_stale_labels": 0,
-  "branches_processed": 16,
+  "branches_processed": 17,
   "stale_branches": [],
   "delete_candidates": [],
   "deleted_branches": [],
@@ -18,50 +19,39 @@
     "PR-Cleaner"
   ],
   "ai": {
-    "reviewed": 5,
+    "reviewed": 4,
     "suppressed": 0,
     "fallbacks": 0,
     "decisions": [
+      {
+        "pr_number": 2,
+        "baseline_stage": "final-notice",
+        "decision": "keep_stale",
+        "category": "needs-attention",
+        "confidence": 0.9,
+        "reason": "The PR has reached the 'final-notice' stage, indicating no new commits or reviews have been submitted in over 21 days. The work requires review to proceed.",
+        "final_action": "keep_stale",
+        "provider": "gemini_cli",
+        "fallback_reason": null
+      },
       {
         "pr_number": 1,
         "baseline_stage": "final-notice",
         "decision": "keep_stale",
         "category": "abandoned",
         "confidence": 0.9,
-        "reason": "The PR is in the final notice stage and there is no evidence of recent activity.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 4,
-        "baseline_stage": "escalated",
-        "decision": "keep_stale",
-        "category": "abandoned",
-        "confidence": 0.8,
-        "reason": "The pull request is in an escalated stale stage and lacks any indication of recent activity or ongoing discussion.",
+        "reason": "The pull request is in the final notice stage with no recent activity indicated.",
         "final_action": "keep_stale",
         "provider": "gemini_cli",
         "fallback_reason": null
       },
       {
         "pr_number": 11,
-        "baseline_stage": "warning",
-        "decision": "keep_stale",
-        "category": "abandoned",
-        "confidence": 0.9,
-        "reason": "The pull request has a minimal description and no evidence of recent activity was provided.",
-        "final_action": "keep_stale",
-        "provider": "gemini_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 2,
         "baseline_stage": "escalated",
         "decision": "keep_stale",
-        "category": "needs-attention",
-        "confidence": 0.9,
-        "reason": "The pull request is in the 'escalated' stale stage, indicating at least 14 days of inactivity with no new commits or reviews.",
+        "category": "abandoned",
+        "confidence": 0.8,
+        "reason": "The pull request has an escalated stale stage and lacks any indication of recent activity or discussion.",
         "final_action": "keep_stale",
         "provider": "gemini_cli",
         "fallback_reason": null
@@ -70,9 +60,9 @@
         "pr_number": 8,
         "baseline_stage": "escalated",
         "decision": "keep_stale",
-        "category": "needs-attention",
-        "confidence": 0.8,
-        "reason": "The PR has a minimal description and no evidence of recent activity was found.",
+        "category": "abandoned",
+        "confidence": 0.9,
+        "reason": "The PR has a minimal description and no clear evidence of recent activity, and has already been escalated as stale.",
         "final_action": "keep_stale",
         "provider": "gemini_cli",
         "fallback_reason": null

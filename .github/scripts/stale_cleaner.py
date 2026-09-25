@@ -27,8 +27,8 @@ DEFAULT_CONFIG = {
     "exempt_pr_labels": ["no-stale", "security", "blocked"],
     "managed_labels": ["stale:warning", "stale:escalated", "stale:final-notice"],
     "branch_thresholds": {
-        "stale_days": 30,
-        "delete_candidate_days": 60,
+        "stale_days": 8,
+        "delete_candidate_days": 10,
     },
     "exempt_branch_patterns": ["main", "master", "develop", "release/*", "hotfix/*"],
     "protected_label": "Do_Not_Delete",
@@ -103,6 +103,7 @@ class RunSummary:
 
 def summary_report_payload(summary: RunSummary) -> dict[str, Any]:
     return {
+        "report_version": 1,
         "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
         "run_mode": summary.run_mode,
         "prs_processed": summary.prs_processed,
@@ -137,13 +138,20 @@ def summary_report_payload(summary: RunSummary) -> dict[str, Any]:
 
 
 def write_summary_report(summary: RunSummary) -> None:
+    payload = summary_report_payload(summary)
     report_path = os.getenv("STALE_CLEANER_REPORT_PATH", ".github/stale-cleaner-report.json")
     if not report_path:
         return
     Path(report_path).write_text(
-        json.dumps(summary_report_payload(summary), indent=2) + "\n",
+        json.dumps(payload, indent=2) + "\n",
         encoding="utf-8",
     )
+    history_path = os.getenv("STALE_CLEANER_HISTORY_PATH", ".github/stale-cleaner-history.jsonl")
+    if history_path:
+        history_file = Path(history_path)
+        history_file.parent.mkdir(parents=True, exist_ok=True)
+        with history_file.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload) + "\n")
 
 
 class GitHubClient:
