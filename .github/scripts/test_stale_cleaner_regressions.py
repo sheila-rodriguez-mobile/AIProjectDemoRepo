@@ -43,7 +43,7 @@ def heuristic_config() -> dict:
 
 
 def single_pr_client(**record_overrides):
-    """Fake client with one stale PR (#10, 5 days inactive) and no branches."""
+    """Fake client with one stale PR (#10, 10 days inactive) and no branches."""
     record = {
         'payload': {
             'number': 10,
@@ -58,11 +58,11 @@ def single_pr_client(**record_overrides):
             'mergeable_state': 'clean',
         },
         'labels': [],
-        'commit_dates': [iso(2026, 9, 20)],
+        'commit_dates': [iso(2026, 9, 15)],
     }
     record.update(record_overrides)
     return fixtures.FakeGitHubClient(
-        [record], [], {}, {'sha-ten': iso(2026, 9, 20)}
+        [record], [], {}, {'sha-ten': iso(2026, 9, 15)}
     )
 
 
@@ -371,7 +371,7 @@ class DecisionGatingTests(unittest.TestCase):
 
     def test_deferral_still_applies_before_final_notice(self) -> None:
         client = single_pr_client(
-            commit_dates=[iso(2026, 9, 22)],  # 3 days -> escalated
+            commit_dates=[iso(2026, 9, 22)],  # 3 days -> warning
             comments=[
                 {
                     'body': 'can someone review this?',

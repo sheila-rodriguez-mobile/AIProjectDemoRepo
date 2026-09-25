@@ -60,9 +60,12 @@ class StaleCleanerTests(unittest.TestCase):
     def test_stage_calculation(self) -> None:
         self.assertEqual(module.stale_stage_for_days(0, PR_THRESHOLDS), 'active')
         self.assertEqual(module.stale_stage_for_days(1, PR_THRESHOLDS), 'active')
-        self.assertEqual(module.stale_stage_for_days(2, PR_THRESHOLDS), 'warning')
-        self.assertEqual(module.stale_stage_for_days(3, PR_THRESHOLDS), 'escalated')
-        self.assertEqual(module.stale_stage_for_days(4, PR_THRESHOLDS), 'final-notice')
+        self.assertEqual(module.stale_stage_for_days(2, PR_THRESHOLDS), 'active')
+        self.assertEqual(module.stale_stage_for_days(3, PR_THRESHOLDS), 'warning')
+        self.assertEqual(module.stale_stage_for_days(5, PR_THRESHOLDS), 'warning')
+        self.assertEqual(module.stale_stage_for_days(6, PR_THRESHOLDS), 'escalated')
+        self.assertEqual(module.stale_stage_for_days(8, PR_THRESHOLDS), 'escalated')
+        self.assertEqual(module.stale_stage_for_days(9, PR_THRESHOLDS), 'final-notice')
         self.assertEqual(module.stale_stage_for_days(99, PR_THRESHOLDS), 'final-notice')
 
     def test_branch_exempt_patterns(self) -> None:
@@ -742,7 +745,7 @@ def build_fake_client():
                 'mergeable_state': 'clean',
             },
             'labels': [],
-            'commit_dates': [iso(2026, 9, 20)],
+            'commit_dates': [iso(2026, 9, 10)],
         },
         {
             # Exempt label -> skipped entirely.

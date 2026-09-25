@@ -22,9 +22,9 @@ from typing import Any, Iterable
 
 DEFAULT_CONFIG: dict[str, Any] = {
     "pull_request_thresholds": {
-        "warning_days": 2,
-        "escalated_days": 3,
-        "final_notice_days": 4,
+        "warning_days": 3,
+        "escalated_days": 6,
+        "final_notice_days": 9,
     },
     "exempt_pr_labels": ["no-stale", "security", "blocked"],
     # Order matters: warning, escalated, final-notice.
