@@ -27,8 +27,8 @@ DEFAULT_CONFIG = {
     "exempt_pr_labels": ["no-stale", "security", "blocked"],
     "managed_labels": ["stale:warning", "stale:escalated", "stale:final-notice"],
     "branch_thresholds": {
-        "stale_days": 30,
-        "delete_candidate_days": 60,
+        "stale_days": 8,
+        "delete_candidate_days": 10,
     },
     "exempt_branch_patterns": ["main", "master", "develop", "release/*", "hotfix/*"],
     "protected_label": "Do_Not_Delete",
@@ -99,6 +99,59 @@ class RunSummary:
             self.protected_by_labels = []
         if self.ai_decisions is None:
             self.ai_decisions = []
+
+
+def summary_report_payload(summary: RunSummary) -> dict[str, Any]:
+    return {
+        "report_version": 1,
+        "generated_at": dt.datetime.now(dt.timezone.utc).isoformat(),
+        "run_mode": summary.run_mode,
+        "prs_processed": summary.prs_processed,
+        "prs_skipped_exempt": summary.prs_skipped_exempt,
+        "stale_counts": dict(summary.stale_counts or {}),
+        "cleared_stale_labels": summary.cleared_stale_labels,
+        "branches_processed": summary.branches_processed,
+        "stale_branches": list(summary.stale_branches or []),
+        "delete_candidates": list(summary.delete_candidates or []),
+        "deleted_branches": list(summary.deleted_branches or []),
+        "protected_by_labels": list(summary.protected_by_labels or []),
+        "ai": {
+            "reviewed": summary.ai_reviewed,
+            "suppressed": summary.ai_suppressed,
+            "fallbacks": summary.ai_fallbacks,
+            "decisions": [
+                {
+                    "pr_number": decision.pr_number,
+                    "baseline_stage": decision.baseline_stage,
+                    "decision": decision.decision,
+                    "category": decision.category,
+                    "confidence": decision.confidence,
+                    "reason": decision.reason,
+                    "final_action": decision.final_action,
+                    "provider": decision.provider,
+                    "fallback_reason": decision.fallback_reason,
+                }
+                for decision in (summary.ai_decisions or [])
+            ],
+        },
+    }
+
+
+def write_summary_report(summary: RunSummary) -> None:
+    payload = summary_report_payload(summary)
+    report_path = os.getenv("STALE_CLEANER_REPORT_PATH", ".github/stale-cleaner-report.json")
+    if not report_path:
+        return
+    Path(report_path).write_text(
+        json.dumps(payload, indent=2) + "\n",
+        encoding="utf-8",
+    )
+    history_path = os.getenv("STALE_CLEANER_HISTORY_PATH", ".github/stale-cleaner-history.jsonl")
+    if history_path:
+        history_file = Path(history_path)
+        history_file.parent.mkdir(parents=True, exist_ok=True)
+        with history_file.open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(payload) + "\n")
 
 
 class GitHubClient:
@@ -817,6 +870,7 @@ def write_summary(summary: RunSummary) -> None:
     lines.extend(f"- {name}" for name in summary.protected_by_labels or ["_None_"])
 
     text = "\n".join(lines) + "\n"
+    write_summary_report(summary)
     summary_path = os.getenv("GITHUB_STEP_SUMMARY")
     if summary_path:
         Path(summary_path).write_text(text, encoding="utf-8")

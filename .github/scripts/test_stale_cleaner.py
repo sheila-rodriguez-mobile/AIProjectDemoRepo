@@ -153,6 +153,35 @@ class StaleCleanerTests(unittest.TestCase):
         self.assertEqual(decision.category, 'active-review')
         self.assertEqual(decision.final_action, 'suppress')
 
+    def test_summary_report_payload_contains_ai_details(self) -> None:
+        summary = module.RunSummary(run_mode='dry-run')
+        summary.prs_processed = 3
+        summary.stale_counts['warning'] = 2
+        summary.stale_branches.append('feature/old-work')
+        summary.ai_reviewed = 2
+        summary.ai_suppressed = 1
+        summary.ai_decisions.append(
+            module.AIDecision(
+                pr_number=42,
+                baseline_stage='warning',
+                decision='suppress',
+                category='active-review',
+                confidence=0.91,
+                reason='Review is ongoing',
+                final_action='suppress',
+                provider='gemini_cli',
+            )
+        )
+        payload = module.summary_report_payload(summary)
+        self.assertEqual(payload['run_mode'], 'dry-run')
+        self.assertEqual(payload['prs_processed'], 3)
+        self.assertEqual(payload['stale_counts']['warning'], 2)
+        self.assertEqual(payload['stale_branches'], ['feature/old-work'])
+        self.assertEqual(payload['ai']['reviewed'], 2)
+        self.assertEqual(payload['ai']['suppressed'], 1)
+        self.assertEqual(payload['ai']['decisions'][0]['provider'], 'gemini_cli')
+        self.assertIn('generated_at', payload)
+
     def test_process_pr_handles_key_error_gracefully(self) -> None:
         class MockGitHubClient:
             def open_pull_requests(self):
