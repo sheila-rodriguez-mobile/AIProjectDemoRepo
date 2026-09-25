@@ -144,7 +144,7 @@ Both include AI state counts, per-PR decisions, and branch risk assessments.
 - **Custom labels.** `managed_labels` (warning, escalated, final-notice order)
   are now honoured when applying stage labels.
 - **AI timeout.** `ai_config.ai_timeout_seconds` (default 120) bounds the
-  Gemini CLI call; on timeout the heuristic classifier is used.
+  Copilot CLI call; on timeout the heuristic classifier is used.
 
 ## Local validation
 

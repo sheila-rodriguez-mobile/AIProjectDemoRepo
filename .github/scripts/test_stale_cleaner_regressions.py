@@ -292,7 +292,7 @@ class DecisionGatingTests(unittest.TestCase):
             1,
             'warning',
             module.DEFAULT_CONFIG['ai_config'],
-            'gemini_cli',
+            'copilot_cli',
             {
                 'state': 'awaiting_reviewer',
                 'actions': ['post_comment', 'suppress_stale_label'],
@@ -306,7 +306,7 @@ class DecisionGatingTests(unittest.TestCase):
             1,
             'warning',
             module.DEFAULT_CONFIG['ai_config'],
-            'gemini_cli',
+            'copilot_cli',
             {'state': 'stale', 'actions': ['suppress_stale_label'], 'confidence': 0.99},
         )
         self.assertEqual(decision.decision, 'keep_stale')
@@ -317,7 +317,7 @@ class DecisionGatingTests(unittest.TestCase):
             1,
             'warning',
             module.DEFAULT_CONFIG['ai_config'],
-            'gemini_cli',
+            'copilot_cli',
             {'state': 'blocked', 'actions': ['suppress_stale_label'], 'confidence': 7},
         )
         self.assertEqual(decision.confidence, 1.0)
@@ -326,7 +326,7 @@ class DecisionGatingTests(unittest.TestCase):
                 1,
                 'warning',
                 module.DEFAULT_CONFIG['ai_config'],
-                'gemini_cli',
+                'copilot_cli',
                 {'state': 'blocked', 'confidence': 'very high'},
             )
 

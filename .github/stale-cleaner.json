@@ -29,8 +29,8 @@
   "additional_mentions": [],
   "ai_config": {
     "enabled": true,
-    "ai_provider": "gemini_cli",
-    "gemini_model": null,
+    "ai_provider": "copilot_cli",
+    "copilot_model": null,
     "allowed_suppression_states": [
       "active_discussion",
       "awaiting_external",

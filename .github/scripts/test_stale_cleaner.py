@@ -93,7 +93,7 @@ class StaleCleanerTests(unittest.TestCase):
             module.DEFAULT_CONFIG, {'ai_config': {'confidence_threshold': 0.5}}
         )
         self.assertEqual(merged['ai_config']['confidence_threshold'], 0.5)
-        self.assertEqual(merged['ai_config']['ai_provider'], 'gemini_cli')
+        self.assertEqual(merged['ai_config']['ai_provider'], 'copilot_cli')
 
 
 # ---------------------------------------------------------------------------
@@ -157,7 +157,7 @@ class MultiStateClassificationTests(unittest.TestCase):
             42,
             'warning',
             AI_CONFIG,
-            'gemini_cli',
+            'copilot_cli',
             {
                 'state': 'awaiting_reviewer',
                 'actions': ['suppress_stale_label', 'post_comment', 'ping_reviewers'],
@@ -175,7 +175,7 @@ class MultiStateClassificationTests(unittest.TestCase):
             7,
             'escalated',
             AI_CONFIG,
-            'gemini_cli',
+            'copilot_cli',
             {
                 'state': 'active_discussion',
                 'actions': ['suppress_stale_label', 'post_comment'],
@@ -190,7 +190,7 @@ class MultiStateClassificationTests(unittest.TestCase):
             9,
             'final-notice',
             AI_CONFIG,
-            'gemini_cli',
+            'copilot_cli',
             {
                 'state': 'candidate_for_closure',
                 'actions': ['add_stale_label', 'post_comment', 'ping_author'],
@@ -209,7 +209,7 @@ class MultiStateClassificationTests(unittest.TestCase):
             11,
             'warning',
             strict_config,
-            'gemini_cli',
+            'copilot_cli',
             {
                 'state': 'awaiting_reviewer',
                 'actions': ['suppress_stale_label'],
@@ -221,7 +221,7 @@ class MultiStateClassificationTests(unittest.TestCase):
 
     def test_decision_handles_garbage_model_output(self) -> None:
         decision = module.decision_from_ai_result(
-            1, 'warning', AI_CONFIG, 'gemini_cli', {'state': '???', 'confidence': 0.99}
+            1, 'warning', AI_CONFIG, 'copilot_cli', {'state': '???', 'confidence': 0.99}
         )
         self.assertEqual(decision.state, 'stale')
         self.assertEqual(decision.decision, 'keep_stale')
@@ -879,28 +879,28 @@ class EndToEndEngineTests(unittest.TestCase):
         self.assertEqual(summary.delete_candidates, ['feature/old'])
         self.assertEqual(summary.deleted_branches, [])
 
-    def test_gemini_failure_falls_back_to_heuristic(self) -> None:
+    def test_copilot_failure_falls_back_to_heuristic(self) -> None:
         client = build_fake_client()
         config = heuristic_config()
-        config['ai_config']['ai_provider'] = 'gemini_cli'
+        config['ai_config']['ai_provider'] = 'copilot_cli'
         summary = module.RunSummary(run_mode='dry-run')
 
-        original = module.evaluate_pr_with_gemini_cli
+        original = module.evaluate_pr_with_copilot_cli
 
         def boom(*args, **kwargs):
-            raise RuntimeError('gemini unavailable')
+            raise RuntimeError('copilot unavailable')
 
-        module.evaluate_pr_with_gemini_cli = boom
+        module.evaluate_pr_with_copilot_cli = boom
         try:
             module.process_pull_requests(client, config, NOW, True, summary, 'acme')
         finally:
-            module.evaluate_pr_with_gemini_cli = original
+            module.evaluate_pr_with_copilot_cli = original
 
         self.assertEqual(summary.ai_reviewed, 2)
         self.assertEqual(summary.ai_fallbacks, 2)
         for decision in summary.ai_decisions:
             self.assertEqual(decision.provider, 'heuristic')
-            self.assertIn('fallback from gemini_cli', decision.reason)
+            self.assertIn('fallback from copilot_cli', decision.reason)
 
     def test_ai_disabled_falls_back_to_plain_stale_labelling(self) -> None:
         client = build_fake_client()

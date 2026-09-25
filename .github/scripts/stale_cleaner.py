@@ -38,8 +38,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "additional_mentions": [],
     "ai_config": {
         "enabled": True,
-        "ai_provider": "gemini_cli",
-        "gemini_model": None,
+        "ai_provider": "copilot_cli",
+        "copilot_model": None,
         "ai_timeout_seconds": 120,
         "allowed_suppression_states": [
             "active_discussion",
@@ -1109,14 +1109,14 @@ def fallback_state_from_context(
     return build("stale", 0.7, "No active review, dependency, or blocker signals detected")
 
 
-def evaluate_pr_with_gemini_cli(
+def evaluate_pr_with_copilot_cli(
     pr: dict[str, Any],
     baseline_stage: str,
     ai_config: dict[str, Any],
     context: dict[str, Any] | None = None,
 ) -> AIDecision:
-    if shutil.which("gemini") is None:
-        raise RuntimeError("gemini CLI is not installed or not on PATH")
+    if shutil.which("copilot") is None:
+        raise RuntimeError("copilot CLI is not installed or not on PATH")
 
     payload_context = dict(context or {})
     payload_context.setdefault("pr_number", int(pr.get("number", 0)))
@@ -1125,20 +1125,24 @@ def evaluate_pr_with_gemini_cli(
     payload_context.setdefault("body", pr.get("body", ""))
 
     command = [
-        "gemini",
-        "--skip-trust",
-        "--sandbox",
-        "--output-format",
-        "text",
+        "copilot",
         "-p",
         build_ai_prompt(payload_context),
+        # Non-interactive mode requires explicit tool permission, but the
+        # prompt asks for JSON-only output with no tool use, so no tools are
+        # actually made available to the model (sandboxed, side-effect-free).
+        "--allow-all-tools",
+        "--available-tools",
+        "none",
+        "--no-color",
+        "-s",
     ]
-    model = ai_config.get("gemini_model")
+    model = ai_config.get("copilot_model")
     if model:
         command.extend(["--model", str(model)])
 
     timeout = float(ai_config.get("ai_timeout_seconds", 120) or 120)
-    with tempfile.TemporaryDirectory(prefix="stale-cleaner-gemini-") as temp_dir:
+    with tempfile.TemporaryDirectory(prefix="stale-cleaner-copilot-") as temp_dir:
         try:
             result = subprocess.run(
                 command,
@@ -1150,12 +1154,12 @@ def evaluate_pr_with_gemini_cli(
                 env={**os.environ, "NO_COLOR": "1"},
             )
         except subprocess.TimeoutExpired as exc:
-            raise RuntimeError(f"gemini CLI timed out after {timeout:.0f}s") from exc
+            raise RuntimeError(f"copilot CLI timed out after {timeout:.0f}s") from exc
 
     if result.returncode != 0:
         detail = (result.stderr or result.stdout or "").strip()
         raise RuntimeError(
-            detail[:500] or f"gemini CLI exited with status {result.returncode}"
+            detail[:500] or f"copilot CLI exited with status {result.returncode}"
         )
 
     parsed = extract_json_object((result.stdout or "").strip())
@@ -1163,7 +1167,7 @@ def evaluate_pr_with_gemini_cli(
         int(pr.get("number", 0)),
         baseline_stage,
         ai_config,
-        "gemini_cli",
+        "copilot_cli",
         parsed,
     )
 
@@ -1186,11 +1190,11 @@ def evaluate_pr_with_ai(
     signals.setdefault("body", pr.get("body", ""))
 
     provider = str(ai_config.get("ai_provider", "heuristic")).strip().lower()
-    if provider != "gemini_cli":
+    if provider != "copilot_cli":
         return fallback_state_from_context(signals, thresholds, ai_config)
 
     try:
-        return evaluate_pr_with_gemini_cli(
+        return evaluate_pr_with_copilot_cli(
             pr, baseline_stage, ai_config, context=signals
         )
     except Exception as exc:
@@ -1204,7 +1208,7 @@ def log_ai_decision(decision: AIDecision, dry_run: bool = False) -> None:
     mode = "DRY_RUN" if dry_run else "APPLY"
     provider_label = {
         "heuristic": "Heuristic",
-        "gemini_cli": "Gemini CLI",
+        "copilot_cli": "Copilot CLI",
     }.get(decision.provider, decision.provider)
     fallback_suffix = (
         f" | Fallback: {decision.fallback_reason}" if decision.fallback_reason else ""
