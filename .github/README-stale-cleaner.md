@@ -9,7 +9,7 @@ Phase 2 upgrades the cleaner from a binary stale/not-stale check into a **contex
 - File: `.github/workflows/stale-cleaner.yml`
 - Schedule: daily at 08:20 UTC (every day, including weekends, so no stale
   stage window can be skipped over a multi-day gap between scans)
-- Manual runs default to real mode
+- Manual runs default to dry run (untick `dry_run` to apply)
 
 ## Runtime configuration
 

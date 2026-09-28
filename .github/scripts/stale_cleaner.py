@@ -258,6 +258,8 @@ class RunSummary:
     labeled_counts: dict[str, int] | None = None
     held_prs: list[dict[str, Any]] | None = None
     context_label_counts: dict[str, int] | None = None
+    labeled_prs: list[dict[str, Any]] | None = None
+    repository: str = ""
     suppressions_expired: int = 0
     memory_notes: list[str] | None = None
 
@@ -280,6 +282,8 @@ class RunSummary:
             self.held_prs = []
         if self.context_label_counts is None:
             self.context_label_counts = {}
+        if self.labeled_prs is None:
+            self.labeled_prs = []
         if self.agent_policy is None:
             self.agent_policy = {}
         if self.stale_counts is None:
@@ -1920,6 +1924,18 @@ def process_pull_requests(
                 summary.context_label_counts[extra_label] = (
                     summary.context_label_counts.get(extra_label, 0) + 1
                 )
+            summary.labeled_prs.append(
+                {
+                    "pr_number": number,
+                    "title": str(context.get("title") or "")[:120],
+                    "author": context.get("author"),
+                    "days_inactive": days_inactive,
+                    "stage": stage,
+                    "state": state,
+                    "labels": list(desired_labels),
+                    "action": final_action,
+                }
+            )
             if not dry_run:
                 sync_pr_labels(
                     client, number, desired_labels, managed_current, current_label_names
@@ -2249,6 +2265,8 @@ def summary_as_dict(summary: RunSummary) -> dict[str, Any]:
         "labeled_counts": dict(summary.labeled_counts or {}),
         "held_prs": list(summary.held_prs or []),
         "context_label_counts": dict(summary.context_label_counts or {}),
+        "labeled_prs": list(summary.labeled_prs or []),
+        "repository": summary.repository,
         "cleared_stale_labels": summary.cleared_stale_labels,
         "comments_posted": summary.comments_posted,
         "comments_skipped_duplicate": summary.comments_skipped_duplicate,
@@ -2549,7 +2567,7 @@ def main() -> int:
     client = GitHubClient(token, repository, api_url=api_url)
     now = dt.datetime.now(dt.timezone.utc)
     repo_info = client.repo_info()
-    summary = RunSummary(run_mode="dry-run" if dry_run else "apply")
+    summary = RunSummary(run_mode="dry-run" if dry_run else "apply", repository=repository)
 
     agent_config = agent.merge_agent_config(config.get("agent_config"))
     memory: agent.AgentMemory | None = None
