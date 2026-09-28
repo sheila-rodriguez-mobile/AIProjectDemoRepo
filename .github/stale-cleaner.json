@@ -14,6 +14,17 @@
     "stale:escalated",
     "stale:final-notice"
   ],
+  "context_labels": {
+    "enabled": true,
+    "labels": {
+      "merge_conflict": "merge_conflicts",
+      "blocked": "blocker",
+      "awaiting_reviewer": "awaiting_reviewer",
+      "awaiting_external": "awaiting_external",
+      "active_discussion": "active_discussion",
+      "candidate_for_closure": "closure_candidate"
+    }
+  },
   "branch_thresholds": {
     "stale_days": 8,
     "delete_candidate_days": 10
@@ -41,5 +52,58 @@
     "max_comments_to_inspect": 10,
     "author_only_comments_count": false,
     "log_decisions": true
+  },
+  "agent_config": {
+    "enabled": true,
+    "memory_path": ".github/stale-cleaner-memory.json",
+    "persist_in_dry_run": false,
+    "min_days_between_steps": 1,
+    "max_suppression_days": 14,
+    "override_cooldown_days": 7,
+    "history_limit": 20,
+    "retention_days": 90,
+    "branch_advisor": {
+      "enabled": true,
+      "use_ai": true,
+      "delete_patterns": [
+        "wip/*",
+        "tmp/*",
+        "temp/*",
+        "experiment/*",
+        "spike/*",
+        "dependabot/*",
+        "renovate/*"
+      ],
+      "keep_patterns": [
+        "archive/*",
+        "keep/*",
+        "backup/*",
+        "long-lived/*"
+      ],
+      "keep_labels": [
+        "do_not_delete",
+        "keep",
+        "pinned"
+      ],
+      "delete_labels": [
+        "wontfix",
+        "duplicate",
+        "invalid"
+      ]
+    },
+    "optimization": {
+      "enabled": true,
+      "min_samples": 5,
+      "target_false_stale_rate": 0.2,
+      "target_ping_response_rate": 0.2,
+      "target_suppression_expiry_rate": 0.3,
+      "confidence_step": 0.05,
+      "max_confidence_offset": 0.1,
+      "max_step_spacing_days": 7,
+      "branch_extra_days_per_incident": 2,
+      "max_branch_extra_days": 30,
+      "suppression_days_step": 2,
+      "min_suppression_days": 7
+    }
   }
 }
