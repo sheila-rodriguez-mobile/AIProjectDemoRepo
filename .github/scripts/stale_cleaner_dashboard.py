@@ -170,11 +170,47 @@ def render_cards(report: dict[str, Any], metrics: dict[str, Any]) -> str:
 
 def render_stale_counts(report: dict[str, Any]) -> str:
     counts = report.get('stale_counts', {}) or {}
-    return ''.join(
-        '<div class="count"><span>{}</span><strong>{}</strong></div>'.format(
-            html.escape(stage.replace('-', ' ')), html.escape(str(value))
+    labeled = report.get('labeled_counts')
+    held_by_stage: dict[str, int] = {}
+    for item in report.get('held_prs', []) or []:
+        stage = str(item.get('stage', ''))
+        held_by_stage[stage] = held_by_stage.get(stage, 0) + 1
+    verb = 'to label' if report.get('run_mode') == 'dry-run' else 'labeled'
+    cells = []
+    for stage, value in counts.items():
+        detail = ''
+        # Older reports have no labeled_counts; keep their original rendering.
+        if labeled is not None and stage != 'active':
+            detail = '<div class="count-detail">{} {} · {} held</div>'.format(
+                html.escape(str(labeled.get(stage, 0))),
+                html.escape(verb),
+                html.escape(str(held_by_stage.get(stage, 0))),
+            )
+        cells.append(
+            '<div class="count"><span>{}</span><strong>{}</strong>{}</div>'.format(
+                html.escape(stage.replace('-', ' ')), html.escape(str(value)), detail
+            )
         )
-        for stage, value in counts.items()
+    return ''.join(cells)
+
+
+def render_held_prs(report: dict[str, Any]) -> str:
+    held = report.get('held_prs', []) or []
+    if not held:
+        return ''
+    items = ''.join(
+        '<li>PR #{} ({}) · {} → {} — {}</li>'.format(
+            html.escape(str(item.get('pr_number', '?'))),
+            html.escape(str(item.get('stage', ''))),
+            html.escape(str(item.get('state', ''))),
+            html.escape(str(item.get('action', ''))),
+            html.escape(str(item.get('reason', ''))),
+        )
+        for item in held
+    )
+    return (
+        '<div class="count-note">Counts are by days inactive. These PRs reached a stale '
+        'stage but were held without a label:</div><ul>' + items + '</ul>'
     )
 
 
@@ -630,6 +666,8 @@ def render_dashboard(report_path: Path, history_path: Path, selected_category: s
     .count {{ background:var(--panel-2); border:1px solid var(--border); border-radius:14px; padding:16px; }}
     .count span {{ color: var(--muted); display:block; margin-bottom:8px; text-transform:capitalize; }}
     .count strong {{ font-size:24px; }}
+    .count-detail {{ color: var(--muted); font-size:12px; margin-top:6px; }}
+    .count-note {{ color: var(--muted); font-size:13px; margin:14px 0 6px; }}
     .insights {{ margin:0; padding-left:20px; }}
     ul {{ margin: 0; padding-left: 20px; }}
     li {{ margin: 8px 0; }}
@@ -708,6 +746,7 @@ def render_dashboard(report_path: Path, history_path: Path, selected_category: s
       <div class="panel">
         <h2>PR stale counts</h2>
         <div class="counts">{render_stale_counts(report)}</div>
+        {render_held_prs(report)}
       </div>
       <div class="panel">
         <h2>AI decisions</h2>

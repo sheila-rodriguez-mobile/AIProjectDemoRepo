@@ -241,6 +241,9 @@ class RunSummary:
     goal_metrics: dict[str, Any] | None = None
     agent_policy: dict[str, Any] | None = None
     overrides_respected: int = 0
+    # Stage counts above are by inactivity age; these show what really happened.
+    labeled_counts: dict[str, int] | None = None
+    held_prs: list[dict[str, Any]] | None = None
     suppressions_expired: int = 0
     memory_notes: list[str] | None = None
 
@@ -257,6 +260,10 @@ class RunSummary:
                 setattr(self, name, [])
         if self.goal_metrics is None:
             self.goal_metrics = {}
+        if self.labeled_counts is None:
+            self.labeled_counts = {stage: 0 for stage in STAGES}
+        if self.held_prs is None:
+            self.held_prs = []
         if self.agent_policy is None:
             self.agent_policy = {}
         if self.stale_counts is None:
@@ -1761,12 +1768,27 @@ def process_pull_requests(
                         step=step,
                     )
 
+            def hold(action: str) -> None:
+                summary.held_prs.append(
+                    {
+                        "pr_number": number,
+                        "stage": stage,
+                        "state": state,
+                        "action": action,
+                        "reason": (
+                            ai_decision.reason if ai_decision else (agent_note or action)
+                        )[:200],
+                    }
+                )
+
             if final_action in {"defer", "respect_human_override"}:
+                hold(final_action)
                 remember(final_action)
                 continue
 
             if final_action == "suppress_stale_label":
                 summary.ai_suppressed += 1
+                hold(final_action)
                 if managed_current:
                     summary.cleared_stale_labels += 1
                     if not dry_run:
@@ -1783,6 +1805,7 @@ def process_pull_requests(
                 continue
 
             target_label = labels_by_stage[stage]
+            summary.labeled_counts[stage] = summary.labeled_counts.get(stage, 0) + 1
             newly_applied = target_label.lower() not in current_label_names
             if not dry_run:
                 for label in managed_current:
@@ -2098,6 +2121,8 @@ def summary_as_dict(summary: RunSummary) -> dict[str, Any]:
         "prs_skipped_exempt": summary.prs_skipped_exempt,
         "prs_failed": summary.prs_failed,
         "stale_counts": dict(summary.stale_counts or {}),
+        "labeled_counts": dict(summary.labeled_counts or {}),
+        "held_prs": list(summary.held_prs or []),
         "cleared_stale_labels": summary.cleared_stale_labels,
         "comments_posted": summary.comments_posted,
         "comments_skipped_duplicate": summary.comments_skipped_duplicate,
@@ -2263,9 +2288,28 @@ def write_summary(summary: RunSummary) -> None:
         f"- Branches protected by labels: {len(summary.protected_by_labels)}",
         "",
         "## PR Stale Counts",
+        "_By days inactive. A PR can reach a stage but be held without a label by the AI_",
+        "_(review pending, merge conflict, external wait) or by a human override._",
     ]
+    held_by_stage: dict[str, int] = {}
+    for item in summary.held_prs or []:
+        held_by_stage[item["stage"]] = held_by_stage.get(item["stage"], 0) + 1
+    label_verb = "to label" if summary.run_mode == "dry-run" else "labeled"
     for stage, count in summary.stale_counts.items():
-        lines.append(f"- {stage}: {count}")
+        if stage == "active":
+            lines.append(f"- {stage}: {count}")
+            continue
+        lines.append(
+            f"- {stage}: {count} ({label_verb}: {summary.labeled_counts.get(stage, 0)}, "
+            f"held without label: {held_by_stage.get(stage, 0)})"
+        )
+    if summary.held_prs:
+        lines.extend(["", "## PRs Held Without A Stale Label"])
+        for item in summary.held_prs:
+            lines.append(
+                f"- PR #{item['pr_number']} ({item['stage']}): `{item['state']}` -> "
+                f"`{item['action']}` - {item['reason']}"
+            )
 
     lines.extend(
         [

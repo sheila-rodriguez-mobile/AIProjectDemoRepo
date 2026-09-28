@@ -387,6 +387,58 @@ class DecisionGatingTests(unittest.TestCase):
 
 
 # ---------------------------------------------------------------------------
+# Stage counts vs. labels actually applied
+# ---------------------------------------------------------------------------
+
+
+class LabeledVsHeldCountTests(unittest.TestCase):
+    def warning_pr(self, **overrides):
+        # 4 days inactive -> warning stage.
+        return single_pr_client(commit_dates=[iso(2026, 9, 21)], **overrides)
+
+    def test_labelled_warning_pr_is_counted_as_labeled(self) -> None:
+        client = self.warning_pr()
+        summary = run_prs(client)
+        self.assertEqual(summary.stale_counts['warning'], 1)
+        self.assertEqual(summary.labeled_counts['warning'], 1)
+        self.assertEqual(summary.held_prs, [])
+        self.assertIn((10, ('stale:warning',)), client.added_labels)
+
+    def test_merge_conflict_warning_pr_is_counted_as_held(self) -> None:
+        client = self.warning_pr()
+        client._record(10)['payload']['mergeable_state'] = 'dirty'
+        client._record(10)['payload']['mergeable'] = False
+        summary = run_prs(client)
+        self.assertEqual(summary.stale_counts['warning'], 1)
+        self.assertEqual(summary.labeled_counts['warning'], 0)
+        self.assertEqual(len(summary.held_prs), 1)
+        held = summary.held_prs[0]
+        self.assertEqual((held['pr_number'], held['stage'], held['state']), (10, 'warning', 'blocked'))
+        self.assertEqual(held['action'], 'suppress_stale_label')
+        self.assertEqual(client.added_labels, [])
+
+    def test_report_and_summary_explain_held_prs(self) -> None:
+        client = self.warning_pr()
+        client._record(10)['payload']['mergeable_state'] = 'dirty'
+        client._record(10)['payload']['mergeable'] = False
+        summary = run_prs(client)
+        payload = module.summary_as_dict(summary)
+        self.assertEqual(payload['labeled_counts']['warning'], 0)
+        self.assertEqual(payload['held_prs'][0]['state'], 'blocked')
+
+        dashboard = _load('stale_cleaner_dashboard_mod', 'stale_cleaner_dashboard.py')
+        html_counts = dashboard.render_stale_counts(payload)
+        self.assertIn('0 labeled · 1 held', html_counts)
+        self.assertIn('PR #10 (warning)', dashboard.render_held_prs(payload))
+
+    def test_dashboard_handles_reports_without_breakdown(self) -> None:
+        dashboard = _load('stale_cleaner_dashboard_mod', 'stale_cleaner_dashboard.py')
+        legacy = {'stale_counts': {'active': 1, 'warning': 2}}
+        self.assertNotIn('held', dashboard.render_stale_counts(legacy))
+        self.assertEqual(dashboard.render_held_prs(legacy), '')
+
+
+# ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
 
