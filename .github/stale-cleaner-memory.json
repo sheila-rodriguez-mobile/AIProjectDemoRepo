@@ -1,0 +1,356 @@
+{
+  "branches": {
+    "demo-run-in-real-mode": {
+      "deleted_at": null,
+      "first_flagged_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_confidence": 0.7,
+      "last_reasons": [
+        "work was merged through a PR",
+        "AI suggested delete (75%) without agreement"
+      ],
+      "last_recommendation": "review",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "restored": false,
+      "restored_at": null
+    }
+  },
+  "memory_version": 1,
+  "metrics": {
+    "branches_deleted": 0,
+    "branches_restored": 0,
+    "comments_posted": 0,
+    "escalations_started": 3,
+    "label_overrides": 0,
+    "labels_applied": 6,
+    "pings_answered": 0,
+    "pings_sent": 0,
+    "reactivations": 0,
+    "runs": 1,
+    "suppressions": 1,
+    "suppressions_expired": 0
+  },
+  "policy": {
+    "adjustments": [],
+    "branch_extra_days": 0,
+    "confidence_offset": 0.0,
+    "last_samples": {
+      "false_stale": 6
+    },
+    "restores_accounted": 0,
+    "step_spacing_days": 1,
+    "suppression_days_offset": 0
+  },
+  "pull_requests": {
+    "1": {
+      "branch_recommendation": null,
+      "escalation_step": 1,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "add_stale_label",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.75,
+          "stage": "final-notice",
+          "state": "stale",
+          "step": 1
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.75,
+      "last_escalation_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_final_action": "add_stale_label",
+      "last_label": "stale:final-notice",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "No reviews, checks, or blockers; 11 days inactive with no evidence of external dependency.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "final-notice",
+      "last_state": "stale",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "11": {
+      "branch_recommendation": null,
+      "escalation_step": 1,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "add_stale_label",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.65,
+          "stage": "escalated",
+          "state": "stale",
+          "step": 1
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.65,
+      "last_escalation_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_final_action": "add_stale_label",
+      "last_label": "stale:escalated",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "7 days inactive, no reviews, no conflicts or blockers detected; default stale.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "escalated",
+      "last_state": "stale",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "16": {
+      "branch_recommendation": null,
+      "escalation_step": 0,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "add_stale_label",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.8,
+          "stage": "warning",
+          "state": "blocked",
+          "step": 0
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.8,
+      "last_escalation_at": null,
+      "last_final_action": "add_stale_label",
+      "last_label": "stale:warning",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "Merge conflicts (mergeable_state=dirty) block progress; author needs to resolve.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "warning",
+      "last_state": "blocked",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "19": {
+      "branch_recommendation": null,
+      "escalation_step": 0,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "none",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": null,
+          "stage": "active",
+          "state": "active",
+          "step": 0
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": null,
+      "last_escalation_at": null,
+      "last_final_action": "none",
+      "last_label": null,
+      "last_label_at": null,
+      "last_provider": null,
+      "last_reason": null,
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "active",
+      "last_state": "active",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "2": {
+      "branch_recommendation": null,
+      "escalation_step": 0,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "add_stale_label",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.85,
+          "stage": "final-notice",
+          "state": "blocked",
+          "step": 0
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.85,
+      "last_escalation_at": null,
+      "last_final_action": "add_stale_label",
+      "last_label": "stale:final-notice",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "PR has merge conflicts (mergeable_state=dirty), blocking progress until author resolves.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "final-notice",
+      "last_state": "blocked",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "21": {
+      "branch_recommendation": null,
+      "escalation_step": 0,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "none",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": null,
+          "stage": "active",
+          "state": "active",
+          "step": 0
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": null,
+      "last_escalation_at": null,
+      "last_final_action": "none",
+      "last_label": null,
+      "last_label_at": null,
+      "last_provider": null,
+      "last_reason": null,
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "active",
+      "last_state": "active",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    },
+    "4": {
+      "branch_recommendation": null,
+      "escalation_step": 0,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "defer",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.68,
+          "stage": "warning",
+          "state": "awaiting_reviewer",
+          "step": 0
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.68,
+      "last_escalation_at": null,
+      "last_final_action": "defer",
+      "last_label": "stale:warning",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "Open review request 3 days old with no unresolved threads; awaiting reviewer response.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "warning",
+      "last_state": "awaiting_reviewer",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": {
+        "expired": false,
+        "reason": "Open review request 3 days old with no unresolved threads; awaiting reviewer response.",
+        "runs": 1,
+        "since": "2026-09-28T18:04:30.298404+00:00",
+        "state": "awaiting_reviewer"
+      }
+    },
+    "8": {
+      "branch_recommendation": null,
+      "escalation_step": 1,
+      "first_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "history": [
+        {
+          "action": "add_stale_label",
+          "at": "2026-09-28T18:04:30.298404+00:00",
+          "confidence": 0.7,
+          "stage": "escalated",
+          "state": "stale",
+          "step": 1
+        }
+      ],
+      "last_comment_at": null,
+      "last_confidence": 0.7,
+      "last_escalation_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_final_action": "add_stale_label",
+      "last_label": "stale:escalated",
+      "last_label_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_provider": "copilot_cli",
+      "last_reason": "8 days inactive, no reviews, no blockers, mergeable clean; no strong evidence to suppress.",
+      "last_seen_at": "2026-09-28T18:04:30.298404+00:00",
+      "last_stage": "escalated",
+      "last_state": "stale",
+      "outcomes": {
+        "human_responses": 0,
+        "label_overrides": 0,
+        "pings_answered": 0,
+        "pings_sent": 0,
+        "reactivations": 0,
+        "suppressions_expired": 0
+      },
+      "override_at": null,
+      "pinged_since_comment": false,
+      "responded_since_comment": true,
+      "suppression": null
+    }
+  },
+  "updated_at": "2026-09-28T18:04:30.298404+00:00"
+}
