@@ -37,6 +37,19 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "exempt_pr_labels": ["no-stale", "security", "blocked"],
     # Order matters: warning, escalated, final-notice.
     "managed_labels": ["stale:warning", "stale:escalated", "stale:final-notice"],
+    # Extra label added next to the stage label when another situation is
+    # detected. Plain inactivity (state "stale") only gets the stage label.
+    "context_labels": {
+        "enabled": True,
+        "labels": {
+            "merge_conflict": "merge_conflicts",
+            "blocked": "blocker",
+            "awaiting_reviewer": "awaiting_reviewer",
+            "awaiting_external": "awaiting_external",
+            "active_discussion": "active_discussion",
+            "candidate_for_closure": "closure_candidate",
+        },
+    },
     "branch_thresholds": {
         "stale_days": 8,
         "delete_candidate_days": 10,
@@ -244,6 +257,7 @@ class RunSummary:
     # Stage counts above are by inactivity age; these show what really happened.
     labeled_counts: dict[str, int] | None = None
     held_prs: list[dict[str, Any]] | None = None
+    context_label_counts: dict[str, int] | None = None
     suppressions_expired: int = 0
     memory_notes: list[str] | None = None
 
@@ -264,6 +278,8 @@ class RunSummary:
             self.labeled_counts = {stage: 0 for stage in STAGES}
         if self.held_prs is None:
             self.held_prs = []
+        if self.context_label_counts is None:
+            self.context_label_counts = {}
         if self.agent_policy is None:
             self.agent_policy = {}
         if self.stale_counts is None:
@@ -608,6 +624,34 @@ def validate_config(config: dict[str, Any]) -> list[str]:
             "(warning, escalated, final-notice)"
         )
 
+    context_cfg = config.get("context_labels")
+    if context_cfg is not None:
+        if not isinstance(context_cfg, dict) or not isinstance(
+            context_cfg.get("labels", {}), dict
+        ):
+            errors.append("context_labels must be an object with a labels mapping")
+        else:
+            stage_names = {str(item).lower() for item in labels or []} if isinstance(labels, list) else set()
+            for key, value in (context_cfg.get("labels") or {}).items():
+                if key not in CONTEXT_LABEL_KEYS:
+                    errors.append(
+                        f"context_labels.labels has unknown key {key!r} "
+                        f"(allowed: {', '.join(CONTEXT_LABEL_KEYS)})"
+                    )
+                elif not isinstance(value, str) or not value.strip():
+                    errors.append(f"context_labels.labels.{key} must be a non-empty string")
+                elif value.lower() in stage_names:
+                    errors.append(
+                        f"context_labels.labels.{key} must differ from the stage labels"
+                    )
+                elif value.lower() in {
+                    str(item).lower() for item in config.get("exempt_pr_labels") or []
+                }:
+                    errors.append(
+                        f"context_labels.labels.{key} ({value!r}) is an exempt PR label; "
+                        "adding it would make the cleaner skip the PR"
+                    )
+
     if not str(config.get("protected_label") or "").strip():
         errors.append("protected_label must be a non-empty string")
 
@@ -637,6 +681,79 @@ def validate_config(config: dict[str, Any]) -> list[str]:
         else:
             errors.extend(agent.validate_agent_config(agent.merge_agent_config(agent_config)))
     return errors
+
+
+CONTEXT_LABEL_KEYS = [
+    "merge_conflict",
+    "blocked",
+    "awaiting_reviewer",
+    "awaiting_external",
+    "active_discussion",
+    "candidate_for_closure",
+]
+
+CONTEXT_LABEL_DESCRIPTIONS = {
+    "merge_conflict": ("d73a4a", "Stale PR with merge conflicts to resolve"),
+    "blocked": ("b60205", "Stale PR blocked by an explicit blocker"),
+    "awaiting_reviewer": ("fbca04", "Stale PR waiting on a requested reviewer"),
+    "awaiting_external": ("c5def5", "Stale PR waiting on QA, checks, or an external dependency"),
+    "active_discussion": ("0e8a16", "Stale PR with unresolved review discussion"),
+    "candidate_for_closure": ("5319e7", "Stale PR that may be ready to close"),
+}
+
+
+def context_label_map(config: dict[str, Any]) -> dict[str, str]:
+    """Situation key -> label name, or empty when context labels are disabled."""
+    context_cfg = config.get("context_labels") or {}
+    if not context_cfg.get("enabled", True):
+        return {}
+    return {
+        key: str(value).strip()
+        for key, value in (context_cfg.get("labels") or {}).items()
+        if str(value or "").strip()
+    }
+
+
+def context_label_for(
+    state: str, context: dict[str, Any], config: dict[str, Any]
+) -> str | None:
+    """Pick the extra label describing why a stale PR is stuck (None for plain inactivity)."""
+    mapping = context_label_map(config)
+    if state == "blocked":
+        conflict = normalize_graphql_mergeable(context.get("mergeable")) is False or (
+            str(context.get("mergeable_state") or "").lower() == "dirty"
+        )
+        if conflict and mapping.get("merge_conflict"):
+            return mapping["merge_conflict"]
+    return mapping.get(state)
+
+
+def owned_labels(config: dict[str, Any]) -> list[str]:
+    """Every label the cleaner may add or remove on a PR."""
+    labels = list(config["managed_labels"])
+    for value in context_label_map(config).values():
+        # Also own the legacy "stale:<name>" spelling so it is cleaned up.
+        for candidate in (value, f"stale:{value}"):
+            if candidate.lower() not in {label.lower() for label in labels}:
+                labels.append(candidate)
+    return labels
+
+
+def sync_pr_labels(
+    client: GitHubClient,
+    number: int,
+    desired: list[str],
+    present_owned: list[str],
+    current_names: set[str],
+) -> None:
+    """Remove owned labels that no longer apply and add missing desired ones."""
+    wanted = {label.lower() for label in desired}
+    for label in present_owned:
+        if label.lower() not in wanted:
+            client.remove_issue_label(number, label)
+    missing = [label for label in desired if label.lower() not in current_names]
+    if missing:
+        client.add_issue_labels(number, missing)
 
 
 def stage_labels(config: dict[str, Any]) -> dict[str, str]:
@@ -915,6 +1032,10 @@ def ensure_stale_labels(
     for label in config["managed_labels"]:
         if label.lower() not in existing_labels:
             client.create_label(label)
+    for key, label in context_label_map(config).items():
+        if label.lower() not in existing_labels:
+            color, description = CONTEXT_LABEL_DESCRIPTIONS.get(key, ("ededed", ""))
+            client.create_label(label, color=color, description=description)
 
 
 # ---------------------------------------------------------------------------
@@ -1683,7 +1804,7 @@ def process_pull_requests(
 
             managed_current = [
                 label
-                for label in config["managed_labels"]
+                for label in owned_labels(config)
                 if label.lower() in current_label_names
             ]
 
@@ -1781,41 +1902,45 @@ def process_pull_requests(
                     }
                 )
 
-            if final_action in {"defer", "respect_human_override"}:
+            # Humans win: a stale label removed by a human stays off during cooldown.
+            if final_action == "respect_human_override":
                 hold(final_action)
                 remember(final_action)
                 continue
 
-            if final_action == "suppress_stale_label":
-                summary.ai_suppressed += 1
-                hold(final_action)
-                if managed_current:
-                    summary.cleared_stale_labels += 1
-                    if not dry_run:
-                        for label in managed_current:
-                            client.remove_issue_label(number, label)
-                    if use_agent:
-                        agent.clear_label(memory, number)
-                if "post_comment" in planned_actions:
-                    post_contextual_comment(
-                        client, summary, context, pr, repo_owner, state, stage,
-                        True, additional_mentions, dry_run,
-                    )
-                remember(final_action)
-                continue
-
+            # Every stale PR carries its stage label. When the context engine
+            # detects another situation (merge conflict, awaiting reviewer, ...)
+            # a second, descriptive label is added next to it.
             target_label = labels_by_stage[stage]
-            summary.labeled_counts[stage] = summary.labeled_counts.get(stage, 0) + 1
+            extra_label = context_label_for(state, context, config)
+            desired_labels = [target_label] + ([extra_label] if extra_label else [])
             newly_applied = target_label.lower() not in current_label_names
+            summary.labeled_counts[stage] = summary.labeled_counts.get(stage, 0) + 1
+            if extra_label:
+                summary.context_label_counts[extra_label] = (
+                    summary.context_label_counts.get(extra_label, 0) + 1
+                )
             if not dry_run:
-                for label in managed_current:
-                    if label.lower() != target_label.lower():
-                        client.remove_issue_label(number, label)
-                if newly_applied:
-                    client.add_issue_labels(number, [target_label])
-
+                sync_pr_labels(
+                    client, number, desired_labels, managed_current, current_label_names
+                )
             if use_agent:
                 agent.record_label(memory, number, target_label, now, newly_applied)
+
+            # Suppressing/deferring states still get labelled, but they do not
+            # climb the escalation ladder; they get their tailored comment instead.
+            if final_action in {"defer", "suppress_stale_label"}:
+                if final_action == "suppress_stale_label":
+                    summary.ai_suppressed += 1
+                    if "post_comment" in planned_actions:
+                        post_contextual_comment(
+                            client, summary, context, pr, repo_owner, state, stage,
+                            True, additional_mentions, dry_run,
+                        )
+                remember(final_action)
+                continue
+
+            if use_agent:
                 plan = agent.plan_escalation(memory, number, stage, escalation_state, now)
                 if plan.advanced and plan.step == len(agent.ESCALATION_LADDER):
                     plan.branch_recommendation = agent.recommend_branch_for_pr(
@@ -2123,6 +2248,7 @@ def summary_as_dict(summary: RunSummary) -> dict[str, Any]:
         "stale_counts": dict(summary.stale_counts or {}),
         "labeled_counts": dict(summary.labeled_counts or {}),
         "held_prs": list(summary.held_prs or []),
+        "context_label_counts": dict(summary.context_label_counts or {}),
         "cleared_stale_labels": summary.cleared_stale_labels,
         "comments_posted": summary.comments_posted,
         "comments_skipped_duplicate": summary.comments_skipped_duplicate,
@@ -2288,8 +2414,8 @@ def write_summary(summary: RunSummary) -> None:
         f"- Branches protected by labels: {len(summary.protected_by_labels)}",
         "",
         "## PR Stale Counts",
-        "_By days inactive. A PR can reach a stage but be held without a label by the AI_",
-        "_(review pending, merge conflict, external wait) or by a human override._",
+        "_By days inactive. Every stale PR gets its stage label; it is only held_",
+        "_without one after a human removed it (override cooldown)._",
     ]
     held_by_stage: dict[str, int] = {}
     for item in summary.held_prs or []:
@@ -2303,6 +2429,10 @@ def write_summary(summary: RunSummary) -> None:
             f"- {stage}: {count} ({label_verb}: {summary.labeled_counts.get(stage, 0)}, "
             f"held without label: {held_by_stage.get(stage, 0)})"
         )
+    if summary.context_label_counts:
+        lines.extend(["", "## Stale Context Labels"])
+        for label, count in sorted(summary.context_label_counts.items()):
+            lines.append(f"- {label}: {count}")
     if summary.held_prs:
         lines.extend(["", "## PRs Held Without A Stale Label"])
         for item in summary.held_prs:

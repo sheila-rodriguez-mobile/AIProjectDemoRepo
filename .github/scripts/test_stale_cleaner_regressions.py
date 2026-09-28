@@ -367,7 +367,9 @@ class DecisionGatingTests(unittest.TestCase):
         self.assertEqual(decision.state, 'active_discussion')
         self.assertEqual(decision.final_action, 'add_stale_label')
         self.assertIn('deferral limit reached', decision.reason)
-        self.assertIn((10, ('stale:final-notice',)), client.added_labels)
+        self.assertIn(
+            (10, ('stale:final-notice', 'active_discussion')), client.added_labels
+        )
 
     def test_deferral_still_applies_before_final_notice(self) -> None:
         client = single_pr_client(
@@ -382,7 +384,10 @@ class DecisionGatingTests(unittest.TestCase):
         )
         summary = run_prs(client)
         self.assertEqual(summary.ai_decisions[0].final_action, 'defer')
-        self.assertEqual(client.added_labels, [])
+        # Deferred PRs are labelled with their stage and context, but not commented.
+        self.assertEqual(
+            client.added_labels, [(10, ('stale:warning', 'active_discussion'))]
+        )
         self.assertEqual(client.comments, [])
 
 
@@ -404,32 +409,119 @@ class LabeledVsHeldCountTests(unittest.TestCase):
         self.assertEqual(summary.held_prs, [])
         self.assertIn((10, ('stale:warning',)), client.added_labels)
 
-    def test_merge_conflict_warning_pr_is_counted_as_held(self) -> None:
-        client = self.warning_pr()
+    def conflict_pr(self, **overrides):
+        client = self.warning_pr(**overrides)
         client._record(10)['payload']['mergeable_state'] = 'dirty'
         client._record(10)['payload']['mergeable'] = False
+        return client
+
+    def test_merge_conflict_pr_gets_stage_and_context_label(self) -> None:
+        client = self.conflict_pr()
         summary = run_prs(client)
         self.assertEqual(summary.stale_counts['warning'], 1)
-        self.assertEqual(summary.labeled_counts['warning'], 0)
-        self.assertEqual(len(summary.held_prs), 1)
-        held = summary.held_prs[0]
-        self.assertEqual((held['pr_number'], held['stage'], held['state']), (10, 'warning', 'blocked'))
-        self.assertEqual(held['action'], 'suppress_stale_label')
-        self.assertEqual(client.added_labels, [])
+        self.assertEqual(summary.labeled_counts['warning'], 1)
+        self.assertEqual(summary.held_prs, [])
+        self.assertEqual(summary.ai_decisions[0].state, 'blocked')
+        self.assertEqual(
+            client.added_labels, [(10, ('stale:warning', 'merge_conflicts'))]
+        )
+        self.assertEqual(summary.context_label_counts, {'merge_conflicts': 1})
 
-    def test_report_and_summary_explain_held_prs(self) -> None:
+    def test_explicit_blocker_without_conflict_uses_blocked_label(self) -> None:
+        client = self.warning_pr(
+            comments=[
+                {
+                    'body': 'This is blocked until the API ships',
+                    'created_at': iso(2026, 9, 22),
+                    'user': {'login': 'teammate', 'type': 'User'},
+                }
+            ]
+        )
+        client._record(10)['payload']['mergeable'] = None
+        client._record(10)['payload']['mergeable_state'] = 'unknown'
+        client._record(10)['comments'][0]['body'] = 'merge conflict with main again'
+        summary = run_prs(client)
+        self.assertEqual(summary.ai_decisions[0].state, 'blocked')
+        # GitHub did not confirm a conflict, so the generic blocked label is used.
+        self.assertIn((10, ('stale:warning', 'blocker')), client.added_labels)
+
+    def test_awaiting_reviewer_pr_gets_context_label(self) -> None:
         client = self.warning_pr()
+        client._record(10)['payload']['requested_reviewers'] = [{'login': 'rev'}]
+        summary = run_prs(client)
+        self.assertEqual(summary.ai_decisions[0].state, 'awaiting_reviewer')
+        self.assertIn((10, ('stale:warning', 'awaiting_reviewer')), client.added_labels)
+
+    def test_plain_inactivity_gets_only_stage_label(self) -> None:
+        client = self.warning_pr()
+        summary = run_prs(client)
+        self.assertEqual(client.added_labels, [(10, ('stale:warning',))])
+        self.assertEqual(summary.context_label_counts, {})
+
+    def test_context_label_is_swapped_when_situation_changes(self) -> None:
+        client = self.warning_pr(labels=['stale:warning', 'merge_conflicts'])
+        client._record(10)['payload']['requested_reviewers'] = [{'login': 'rev'}]
+        run_prs(client)
+        self.assertIn((10, 'merge_conflicts'), client.removed_labels)
+        self.assertNotIn((10, 'stale:warning'), client.removed_labels)
+        self.assertIn((10, ('awaiting_reviewer',)), client.added_labels)
+
+    def test_context_label_removed_when_pr_becomes_active(self) -> None:
+        client = single_pr_client(
+            commit_dates=[iso(2026, 9, 25)],
+            labels=['stale:warning', 'merge_conflicts'],
+        )
+        summary = run_prs(client)
+        self.assertEqual(summary.stale_counts['active'], 1)
+        self.assertIn((10, 'stale:warning'), client.removed_labels)
+        self.assertIn((10, 'merge_conflicts'), client.removed_labels)
+
+    def test_context_labels_can_be_disabled(self) -> None:
+        config = heuristic_config()
+        config['context_labels']['enabled'] = False
+        client = self.conflict_pr()
+        run_prs(client, config)
+        self.assertEqual(client.added_labels, [(10, ('stale:warning',))])
+
+    def test_context_labels_are_created_in_repo(self) -> None:
+        client = self.warning_pr()
+        run_prs(client)
+        self.assertIn('merge_conflicts', client.created_labels)
+        self.assertIn('awaiting_reviewer', client.created_labels)
+
+    def test_invalid_context_label_config_is_rejected(self) -> None:
+        config = heuristic_config()
+        config['context_labels']['labels']['nonsense'] = 'stale:x'
+        config['context_labels']['labels']['blocked'] = 'stale:warning'
+        errors = ' | '.join(module.validate_config(config))
+        self.assertIn("unknown key 'nonsense'", errors)
+        self.assertIn('must differ from the stage labels', errors)
+
+    def test_context_label_cannot_be_an_exempt_label(self) -> None:
+        config = heuristic_config()
+        config['context_labels']['labels']['blocked'] = 'blocked'
+        errors = ' | '.join(module.validate_config(config))
+        self.assertIn('is an exempt PR label', errors)
+
+    def test_legacy_prefixed_context_label_is_replaced(self) -> None:
+        client = self.warning_pr(labels=['stale:warning', 'stale:merge_conflicts'])
         client._record(10)['payload']['mergeable_state'] = 'dirty'
         client._record(10)['payload']['mergeable'] = False
+        run_prs(client)
+        self.assertIn((10, 'stale:merge_conflicts'), client.removed_labels)
+        self.assertIn((10, ('merge_conflicts',)), client.added_labels)
+
+    def test_report_summary_and_dashboard_show_context_labels(self) -> None:
+        client = self.conflict_pr()
         summary = run_prs(client)
         payload = module.summary_as_dict(summary)
-        self.assertEqual(payload['labeled_counts']['warning'], 0)
-        self.assertEqual(payload['held_prs'][0]['state'], 'blocked')
+        self.assertEqual(payload['labeled_counts']['warning'], 1)
+        self.assertEqual(payload['context_label_counts'], {'merge_conflicts': 1})
 
         dashboard = _load('stale_cleaner_dashboard_mod', 'stale_cleaner_dashboard.py')
-        html_counts = dashboard.render_stale_counts(payload)
-        self.assertIn('0 labeled · 1 held', html_counts)
-        self.assertIn('PR #10 (warning)', dashboard.render_held_prs(payload))
+        self.assertIn('1 labeled · 0 held', dashboard.render_stale_counts(payload))
+        self.assertIn('merge_conflicts · 1', dashboard.render_context_labels(payload))
+        self.assertEqual(dashboard.render_held_prs(payload), '')
 
     def test_dashboard_handles_reports_without_breakdown(self) -> None:
         dashboard = _load('stale_cleaner_dashboard_mod', 'stale_cleaner_dashboard.py')

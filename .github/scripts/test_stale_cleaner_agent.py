@@ -346,15 +346,23 @@ class FeedbackLoopTests(unittest.TestCase):
         )
         first = run(client, cfg, memory, NOW)
         self.assertEqual(first.ai_decisions[0].final_action, 'suppress_stale_label')
-        self.assertEqual(client.added_labels, [])
+        # Suppressed PRs are still labelled: stage label plus context label.
+        self.assertEqual(
+            client.added_labels, [(10, ('stale:final-notice', 'active_discussion'))]
+        )
+        self.assertEqual(first.escalation_plans, [])
 
         later = run(client, cfg, memory, NOW + 14 * DAY)
         decision = later.ai_decisions[0]
         self.assertEqual(decision.final_action, 'add_stale_label')
         self.assertIn('suppression expired after 14 day(s)', decision.reason)
         self.assertEqual(later.suppressions_expired, 1)
+        # Once suppression expires the PR climbs the escalation ladder.
         self.assertTrue(later.escalation_plans[0].advanced)
-        self.assertIn((10, ('stale:final-notice',)), client.added_labels)
+        self.assertEqual(
+            sorted(client._record(10)['labels']),
+            ['active_discussion', 'stale:final-notice'],
+        )
         self.assertEqual(memory.metrics['suppressions_expired'], 1)
 
 

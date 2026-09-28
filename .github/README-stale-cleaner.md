@@ -221,6 +221,37 @@ matching **Agent Memory & Planning** section.
 - Closure candidate (heuristic): 27+ days inactive with the branch also idle 27+ days
   (`max(final_notice_days * 3, 12)`)
 
+## Stale context labels
+
+Every PR that reaches a stale stage gets its **stage label**
+(`stale:warning`, `stale:escalated`, or `stale:final-notice`), whatever the
+AI decides. When the context engine also detects another situation, a
+second **context label** is added next to it:
+
+| Detected situation | Extra label |
+|--------------------|-------------|
+| Merge conflict (GitHub reports the PR as conflicting) | `merge_conflicts` |
+| Other explicit blocker | `blocker` |
+| Waiting on a requested reviewer | `awaiting_reviewer` |
+| Waiting on QA, pending checks, or an external dependency | `awaiting_external` |
+| Unresolved review threads / ongoing review discussion | `active_discussion` |
+| Long inactivity for both PR and branch | `closure_candidate` |
+| Plain inactivity | _(stage label only)_ |
+
+Behaviour:
+- The context label is swapped when the situation changes and removed with
+  the stage label as soon as the PR becomes active again.
+- Suppressing states (review pending, conflict, external wait, discussion)
+  are labelled but do **not** climb the escalation ladder; they get their
+  tailored comment instead. Deferred PRs are labelled without a comment.
+- The only time a stale PR is left unlabelled is during the human-override
+  cooldown after someone removed the stale label.
+- Missing labels are created in the repository automatically.
+- Configure names in `context_labels.labels`, or set
+  `context_labels.enabled` to `false` to use stage labels only.
+- The report has `context_label_counts`, and the step summary and dashboard
+  show how many PRs got each context label.
+
 ## Branch thresholds
 
 - Stale: 8 days without activity

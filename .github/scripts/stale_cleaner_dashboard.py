@@ -194,6 +194,22 @@ def render_stale_counts(report: dict[str, Any]) -> str:
     return ''.join(cells)
 
 
+def render_context_labels(report: dict[str, Any]) -> str:
+    counts = report.get('context_label_counts', {}) or {}
+    if not counts:
+        return ''
+    chips = ''.join(
+        '<span class="category-badge" style="border-color:#475569;">{} · {}</span>'.format(
+            html.escape(str(label)), html.escape(str(count))
+        )
+        for label, count in sorted(counts.items())
+    )
+    return (
+        '<div class="count-note">Context labels added next to the stage label:</div>'
+        '<div class="category-badges">' + chips + '</div>'
+    )
+
+
 def render_held_prs(report: dict[str, Any]) -> str:
     held = report.get('held_prs', []) or []
     if not held:
@@ -210,7 +226,7 @@ def render_held_prs(report: dict[str, Any]) -> str:
     )
     return (
         '<div class="count-note">Counts are by days inactive. These PRs reached a stale '
-        'stage but were held without a label:</div><ul>' + items + '</ul>'
+        'stage but were held without a label (human override):</div><ul>' + items + '</ul>'
     )
 
 
@@ -746,6 +762,7 @@ def render_dashboard(report_path: Path, history_path: Path, selected_category: s
       <div class="panel">
         <h2>PR stale counts</h2>
         <div class="counts">{render_stale_counts(report)}</div>
+        {render_context_labels(report)}
         {render_held_prs(report)}
       </div>
       <div class="panel">

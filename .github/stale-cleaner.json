@@ -14,6 +14,17 @@
     "stale:escalated",
     "stale:final-notice"
   ],
+  "context_labels": {
+    "enabled": true,
+    "labels": {
+      "merge_conflict": "merge_conflicts",
+      "blocked": "blocker",
+      "awaiting_reviewer": "awaiting_reviewer",
+      "awaiting_external": "awaiting_external",
+      "active_discussion": "active_discussion",
+      "candidate_for_closure": "closure_candidate"
+    }
+  },
   "branch_thresholds": {
     "stale_days": 8,
     "delete_candidate_days": 10
