@@ -43,7 +43,7 @@ def heuristic_config() -> dict:
 
 
 def single_pr_client(**record_overrides):
-    """Fake client with one stale PR (#10, 10 days inactive) and no branches."""
+    """Fake client with one stale PR (#10, 10 days inactive -> final-notice) and no branches."""
     record = {
         'payload': {
             'number': 10,

@@ -57,9 +57,20 @@ def base_signals(**overrides):
 
 
 class StaleCleanerTests(unittest.TestCase):
+    def test_stage_windows_survive_a_missed_scheduled_run(self) -> None:
+        # The workflow runs daily; a delayed/missed run can create up to a
+        # ~2-3 day gap between scans. Each stage window must stay at least
+        # that wide, or an inactive PR's day-count can jump straight over a
+        # stage between two scans (it happened with the old 2/3/4 config:
+        # warning/escalated windows were only 1 day wide).
+        thresholds = module.DEFAULT_CONFIG['pull_request_thresholds']
+        warning_window = thresholds['escalated_days'] - thresholds['warning_days']
+        escalated_window = thresholds['final_notice_days'] - thresholds['escalated_days']
+        self.assertGreaterEqual(warning_window, 3)
+        self.assertGreaterEqual(escalated_window, 3)
+
     def test_stage_calculation(self) -> None:
         self.assertEqual(module.stale_stage_for_days(0, PR_THRESHOLDS), 'active')
-        self.assertEqual(module.stale_stage_for_days(1, PR_THRESHOLDS), 'active')
         self.assertEqual(module.stale_stage_for_days(2, PR_THRESHOLDS), 'active')
         self.assertEqual(module.stale_stage_for_days(3, PR_THRESHOLDS), 'warning')
         self.assertEqual(module.stale_stage_for_days(5, PR_THRESHOLDS), 'warning')
@@ -574,7 +585,7 @@ class ReportingTests(unittest.TestCase):
                         os.environ[key] = value
 
             payload = json.loads(report.read_text())
-            self.assertEqual(payload['report_version'], 2)
+            self.assertEqual(payload['report_version'], 3)
             self.assertIn('ai_state_counts', payload)
             self.assertEqual(len(history.read_text().strip().splitlines()), 1)
 
@@ -731,7 +742,7 @@ def build_fake_client():
             },
         },
         {
-            # Genuinely stale -> keep stale handling.
+            # Genuinely stale (15 days -> final-notice) -> keep stale handling.
             'payload': {
                 'number': 3,
                 'title': 'Quiet change',
@@ -794,7 +805,7 @@ def build_fake_client():
         'sha-keep': iso(2026, 8, 1),
         'sha-one': iso(2026, 9, 25),
         'sha-two': iso(2026, 9, 18),
-        'sha-three': iso(2026, 9, 20),
+        'sha-three': iso(2026, 9, 10),
         'sha-four': iso(2026, 8, 1),
     }
 

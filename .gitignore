@@ -1,1 +1,2 @@
 *.xcuserstate
+.github/scripts/__pycache__/stale_cleaner_agent.cpython-313.pyc

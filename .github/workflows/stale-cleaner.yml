@@ -2,7 +2,12 @@ name: Stale Cleaner
 
 on:
   schedule:
-    - cron: '20 8 * * 1-5'
+    # Every day, including weekends. Each stale stage is a 3-day-wide window
+    # (see pull_request_thresholds); running only on weekdays left a 3-day gap
+    # between Friday and Monday, which was enough for an inactive PR's day
+    # count to jump straight past the "warning" (and sometimes "escalated")
+    # window between two scans.
+    - cron: '20 8 * * *'
   workflow_dispatch:
     inputs:
       dry_run:
@@ -31,13 +36,31 @@ jobs:
       - name: Run unit tests
         run: python3 -m unittest discover -s .github/scripts -p "test_*.py"
 
+      # Phase 3: the agent's memory must survive between runs. Each run restores
+      # the newest snapshot and saves a new one (caches are immutable per key).
+      - name: Restore agent memory
+        uses: actions/cache/restore@v4
+        with:
+          path: .github/stale-cleaner-memory.json
+          key: stale-cleaner-memory-${{ github.run_id }}
+          restore-keys: |
+            stale-cleaner-memory-
+
       - name: Run PR cleaner
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           CONFIG_PATH: .github/stale-cleaner.json
+          STALE_CLEANER_MEMORY_PATH: .github/stale-cleaner-memory.json
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run == true && 'true' || 'false' }}
         run: python3 .github/scripts/stale_cleaner.py
+
+      - name: Save agent memory
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: .github/stale-cleaner-memory.json
+          key: stale-cleaner-memory-${{ github.run_id }}
 
       - name: Upload run report
         if: always()
@@ -47,4 +70,5 @@ jobs:
           path: |
             .github/stale-cleaner-report.json
             .github/stale-cleaner-history.jsonl
+            .github/stale-cleaner-memory.json
           if-no-files-found: ignore

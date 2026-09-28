@@ -1,6 +1,6 @@
 {
-  "report_version": 2,
-  "generated_at": "2026-09-28T15:46:46.900612+00:00",
+  "report_version": 3,
+  "generated_at": "2026-09-28T16:40:56.073894+00:00",
   "run_mode": "dry-run",
   "prs_processed": 8,
   "prs_skipped_exempt": 0,
@@ -12,19 +12,15 @@
     "final-notice": 2
   },
   "cleared_stale_labels": 0,
-  "comments_posted": 4,
+  "comments_posted": 3,
   "comments_skipped_duplicate": 0,
-  "branches_processed": 20,
+  "branches_processed": 17,
   "stale_branches": [
-    "demo-feat-for-cleaner",
     "demo-fixes",
-    "demo-run-in-real-mode",
-    "demo-updates-thresholds",
-    "stale-pr-cleaner"
+    "demo-run-in-real-mode"
   ],
   "delete_candidates": [
-    "demo-feat-for-cleaner",
-    "stale-pr-cleaner"
+    "demo-fixes"
   ],
   "deleted_branches": [],
   "branch_delete_failures": [],
@@ -44,79 +40,20 @@
   },
   "ai_decisions": [
     {
-      "pr_number": 2,
-      "baseline_stage": "final-notice",
+      "pr_number": 16,
+      "baseline_stage": "warning",
       "state": "blocked",
       "decision": "keep_stale",
       "category": "blocked",
       "confidence": 0.85,
-      "reason": "mergeable_state=dirty indicates merge conflicts blocking progress; author must resolve",
+      "reason": "Merge conflicts (mergeable_state=dirty) block progress; author must resolve.",
       "final_action": "add_stale_label",
       "actions": [
         "add_stale_label",
         "post_comment",
         "ping_author"
       ],
-      "comment_style": "merge_conflict_blocker",
-      "mention_scope": "author",
-      "signal_summary": [],
-      "provider": "copilot_cli",
-      "fallback_reason": null
-    },
-    {
-      "pr_number": 11,
-      "baseline_stage": "escalated",
-      "state": "stale",
-      "decision": "keep_stale",
-      "category": "stale",
-      "confidence": 0.7,
-      "reason": "No review requests, threads, or blockers; inactive with no stronger signal detected.",
-      "final_action": "add_stale_label",
-      "actions": [
-        "add_stale_label",
-        "post_comment",
-        "ping_author"
-      ],
-      "comment_style": "generic_stale_warning",
-      "mention_scope": "author",
-      "signal_summary": [],
-      "provider": "copilot_cli",
-      "fallback_reason": null
-    },
-    {
-      "pr_number": 8,
-      "baseline_stage": "escalated",
-      "state": "stale",
-      "decision": "keep_stale",
-      "category": "stale",
-      "confidence": 0.7,
-      "reason": "No reviewers, threads, or blockers; 8 days inactive with prior stale warning already posted",
-      "final_action": "add_stale_label",
-      "actions": [
-        "add_stale_label",
-        "post_comment",
-        "ping_author"
-      ],
-      "comment_style": "stale_warning",
-      "mention_scope": "author",
-      "signal_summary": [],
-      "provider": "copilot_cli",
-      "fallback_reason": null
-    },
-    {
-      "pr_number": 1,
-      "baseline_stage": "final-notice",
-      "state": "stale",
-      "decision": "keep_stale",
-      "category": "stale",
-      "confidence": 0.75,
-      "reason": "No reviews, checks, or blockers; 11 days inactive with prior escalation already sent.",
-      "final_action": "add_stale_label",
-      "actions": [
-        "add_stale_label",
-        "post_comment"
-      ],
-      "comment_style": "final_notice_stale",
+      "comment_style": "blocked_merge_conflict",
       "mention_scope": "author",
       "signal_summary": [],
       "provider": "copilot_cli",
@@ -128,8 +65,8 @@
       "state": "awaiting_reviewer",
       "decision": "suppress",
       "category": "awaiting_reviewer",
-      "confidence": 0.65,
-      "reason": "Open review request pending, recent, with no unresolved threads or blockers",
+      "confidence": 0.68,
+      "reason": "Open review request pending 3 days, recent activity, no conflicts or unresolved threads.",
       "final_action": "defer",
       "actions": [
         "suppress_stale_label",
@@ -143,20 +80,80 @@
       "fallback_reason": null
     },
     {
-      "pr_number": 16,
-      "baseline_stage": "warning",
-      "state": "blocked",
-      "decision": "suppress",
-      "category": "blocked",
+      "pr_number": 1,
+      "baseline_stage": "final-notice",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
       "confidence": 0.75,
-      "reason": "mergeable_state is dirty, indicating merge conflicts that need author action",
-      "final_action": "defer",
+      "reason": "No reviews, no blockers, 11 days inactive; no evidence to suppress stale handling",
+      "final_action": "add_stale_label",
       "actions": [
-        "suppress_stale_label",
+        "add_stale_label",
         "post_comment",
         "ping_author"
       ],
-      "comment_style": "merge_conflict",
+      "comment_style": "final_notice",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 8,
+      "baseline_stage": "escalated",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
+      "confidence": 0.75,
+      "reason": "No reviews, comments, or blockers; 8 days inactive with no external/reviewer signals.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment",
+        "ping_author"
+      ],
+      "comment_style": "generic_stale_notice",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 11,
+      "baseline_stage": "escalated",
+      "state": "stale",
+      "decision": "keep_stale",
+      "category": "stale",
+      "confidence": 0.6,
+      "reason": "No reviews, conflicts, or external blockers; 7 days inactive with no stronger signal.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment",
+        "ping_author"
+      ],
+      "comment_style": "generic_stale",
+      "mention_scope": "author",
+      "signal_summary": [],
+      "provider": "copilot_cli",
+      "fallback_reason": null
+    },
+    {
+      "pr_number": 2,
+      "baseline_stage": "final-notice",
+      "state": "blocked",
+      "decision": "keep_stale",
+      "category": "blocked",
+      "confidence": 0.85,
+      "reason": "mergeable_state=dirty indicates merge conflicts blocking progress; author must resolve.",
+      "final_action": "add_stale_label",
+      "actions": [
+        "add_stale_label",
+        "post_comment",
+        "ping_author"
+      ],
+      "comment_style": "blocked_conflict",
       "mention_scope": "author",
       "signal_summary": [],
       "provider": "copilot_cli",
@@ -177,79 +174,20 @@
     },
     "decisions": [
       {
-        "pr_number": 2,
-        "baseline_stage": "final-notice",
+        "pr_number": 16,
+        "baseline_stage": "warning",
         "state": "blocked",
         "decision": "keep_stale",
         "category": "blocked",
         "confidence": 0.85,
-        "reason": "mergeable_state=dirty indicates merge conflicts blocking progress; author must resolve",
+        "reason": "Merge conflicts (mergeable_state=dirty) block progress; author must resolve.",
         "final_action": "add_stale_label",
         "actions": [
           "add_stale_label",
           "post_comment",
           "ping_author"
         ],
-        "comment_style": "merge_conflict_blocker",
-        "mention_scope": "author",
-        "signal_summary": [],
-        "provider": "copilot_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 11,
-        "baseline_stage": "escalated",
-        "state": "stale",
-        "decision": "keep_stale",
-        "category": "stale",
-        "confidence": 0.7,
-        "reason": "No review requests, threads, or blockers; inactive with no stronger signal detected.",
-        "final_action": "add_stale_label",
-        "actions": [
-          "add_stale_label",
-          "post_comment",
-          "ping_author"
-        ],
-        "comment_style": "generic_stale_warning",
-        "mention_scope": "author",
-        "signal_summary": [],
-        "provider": "copilot_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 8,
-        "baseline_stage": "escalated",
-        "state": "stale",
-        "decision": "keep_stale",
-        "category": "stale",
-        "confidence": 0.7,
-        "reason": "No reviewers, threads, or blockers; 8 days inactive with prior stale warning already posted",
-        "final_action": "add_stale_label",
-        "actions": [
-          "add_stale_label",
-          "post_comment",
-          "ping_author"
-        ],
-        "comment_style": "stale_warning",
-        "mention_scope": "author",
-        "signal_summary": [],
-        "provider": "copilot_cli",
-        "fallback_reason": null
-      },
-      {
-        "pr_number": 1,
-        "baseline_stage": "final-notice",
-        "state": "stale",
-        "decision": "keep_stale",
-        "category": "stale",
-        "confidence": 0.75,
-        "reason": "No reviews, checks, or blockers; 11 days inactive with prior escalation already sent.",
-        "final_action": "add_stale_label",
-        "actions": [
-          "add_stale_label",
-          "post_comment"
-        ],
-        "comment_style": "final_notice_stale",
+        "comment_style": "blocked_merge_conflict",
         "mention_scope": "author",
         "signal_summary": [],
         "provider": "copilot_cli",
@@ -261,8 +199,8 @@
         "state": "awaiting_reviewer",
         "decision": "suppress",
         "category": "awaiting_reviewer",
-        "confidence": 0.65,
-        "reason": "Open review request pending, recent, with no unresolved threads or blockers",
+        "confidence": 0.68,
+        "reason": "Open review request pending 3 days, recent activity, no conflicts or unresolved threads.",
         "final_action": "defer",
         "actions": [
           "suppress_stale_label",
@@ -276,20 +214,80 @@
         "fallback_reason": null
       },
       {
-        "pr_number": 16,
-        "baseline_stage": "warning",
-        "state": "blocked",
-        "decision": "suppress",
-        "category": "blocked",
+        "pr_number": 1,
+        "baseline_stage": "final-notice",
+        "state": "stale",
+        "decision": "keep_stale",
+        "category": "stale",
         "confidence": 0.75,
-        "reason": "mergeable_state is dirty, indicating merge conflicts that need author action",
-        "final_action": "defer",
+        "reason": "No reviews, no blockers, 11 days inactive; no evidence to suppress stale handling",
+        "final_action": "add_stale_label",
         "actions": [
-          "suppress_stale_label",
+          "add_stale_label",
           "post_comment",
           "ping_author"
         ],
-        "comment_style": "merge_conflict",
+        "comment_style": "final_notice",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
+        "fallback_reason": null
+      },
+      {
+        "pr_number": 8,
+        "baseline_stage": "escalated",
+        "state": "stale",
+        "decision": "keep_stale",
+        "category": "stale",
+        "confidence": 0.75,
+        "reason": "No reviews, comments, or blockers; 8 days inactive with no external/reviewer signals.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment",
+          "ping_author"
+        ],
+        "comment_style": "generic_stale_notice",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
+        "fallback_reason": null
+      },
+      {
+        "pr_number": 11,
+        "baseline_stage": "escalated",
+        "state": "stale",
+        "decision": "keep_stale",
+        "category": "stale",
+        "confidence": 0.6,
+        "reason": "No reviews, conflicts, or external blockers; 7 days inactive with no stronger signal.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment",
+          "ping_author"
+        ],
+        "comment_style": "generic_stale",
+        "mention_scope": "author",
+        "signal_summary": [],
+        "provider": "copilot_cli",
+        "fallback_reason": null
+      },
+      {
+        "pr_number": 2,
+        "baseline_stage": "final-notice",
+        "state": "blocked",
+        "decision": "keep_stale",
+        "category": "blocked",
+        "confidence": 0.85,
+        "reason": "mergeable_state=dirty indicates merge conflicts blocking progress; author must resolve.",
+        "final_action": "add_stale_label",
+        "actions": [
+          "add_stale_label",
+          "post_comment",
+          "ping_author"
+        ],
+        "comment_style": "blocked_conflict",
         "mention_scope": "author",
         "signal_summary": [],
         "provider": "copilot_cli",
@@ -298,8 +296,8 @@
     ]
   },
   "branch_risk_counts": {
-    "likely_safe_to_delete": 2,
-    "maybe_preserve": 5,
+    "likely_safe_to_delete": 1,
+    "maybe_preserve": 3,
     "requires_review": 13
   },
   "branch_risk_assessments": [
@@ -396,7 +394,7 @@
       "risk_state": "requires_review",
       "score": 0.42,
       "reason": "Recently updated branch",
-      "age_days": 6,
+      "age_days": 7,
       "associated_prs": 1,
       "open_prs": 0,
       "protected": false,
@@ -407,18 +405,7 @@
       "risk_state": "requires_review",
       "score": 0.42,
       "reason": "Recently updated branch",
-      "age_days": 2,
-      "associated_prs": 1,
-      "open_prs": 0,
-      "protected": false,
-      "exempt": false
-    },
-    {
-      "branch_name": "demo-feat-for-cleaner",
-      "risk_state": "likely_safe_to_delete",
-      "score": 0.92,
-      "reason": "Past the delete-candidate threshold with no open pull requests",
-      "age_days": 10,
+      "age_days": 3,
       "associated_prs": 1,
       "open_prs": 0,
       "protected": false,
@@ -426,10 +413,10 @@
     },
     {
       "branch_name": "demo-fixes",
-      "risk_state": "maybe_preserve",
-      "score": 0.68,
-      "reason": "Stale but still below the delete-candidate threshold",
-      "age_days": 9,
+      "risk_state": "likely_safe_to_delete",
+      "score": 0.92,
+      "reason": "Past the delete-candidate threshold with no open pull requests; deletion blocked: advisor recommends review",
+      "age_days": 10,
       "associated_prs": 1,
       "open_prs": 0,
       "protected": false,
@@ -480,22 +467,11 @@
       "exempt": false
     },
     {
-      "branch_name": "demo-updates-thresholds",
-      "risk_state": "maybe_preserve",
-      "score": 0.68,
-      "reason": "Stale but still below the delete-candidate threshold",
-      "age_days": 9,
-      "associated_prs": 1,
-      "open_prs": 0,
-      "protected": false,
-      "exempt": false
-    },
-    {
       "branch_name": "demo-updates-thresholds-for-phase2",
       "risk_state": "requires_review",
       "score": 0.88,
       "reason": "Branch still has an open pull request",
-      "age_days": 2,
+      "age_days": 0,
       "associated_prs": 1,
       "open_prs": 1,
       "protected": false,
@@ -511,18 +487,111 @@
       "open_prs": 0,
       "protected": true,
       "exempt": true
-    },
-    {
-      "branch_name": "stale-pr-cleaner",
-      "risk_state": "likely_safe_to_delete",
-      "score": 0.92,
-      "reason": "Past the delete-candidate threshold with no open pull requests",
-      "age_days": 10,
-      "associated_prs": 1,
-      "open_prs": 0,
-      "protected": false,
-      "exempt": false
     }
   ],
+  "agent": {
+    "enabled": true,
+    "escalation_plans": [
+      {
+        "pr_number": 16,
+        "step": 0,
+        "name": "none",
+        "mention_scope": "author",
+        "advanced": false,
+        "reason": "state `blocked` does not escalate",
+        "message": "",
+        "branch_recommendation": null
+      },
+      {
+        "pr_number": 1,
+        "step": 1,
+        "name": "soft_warning",
+        "mention_scope": "author",
+        "advanced": true,
+        "reason": "advanced from step 0 at stage `final-notice`",
+        "message": "Friendly heads-up: this pull request looks inactive. A short status update keeps the signal accurate.",
+        "branch_recommendation": null
+      },
+      {
+        "pr_number": 8,
+        "step": 1,
+        "name": "soft_warning",
+        "mention_scope": "author",
+        "advanced": true,
+        "reason": "advanced from step 0 at stage `escalated`",
+        "message": "Friendly heads-up: this pull request looks inactive. A short status update keeps the signal accurate.",
+        "branch_recommendation": null
+      },
+      {
+        "pr_number": 11,
+        "step": 1,
+        "name": "soft_warning",
+        "mention_scope": "author",
+        "advanced": true,
+        "reason": "advanced from step 0 at stage `escalated`",
+        "message": "Friendly heads-up: this pull request looks inactive. A short status update keeps the signal accurate.",
+        "branch_recommendation": null
+      },
+      {
+        "pr_number": 2,
+        "step": 0,
+        "name": "none",
+        "mention_scope": "author",
+        "advanced": false,
+        "reason": "state `blocked` does not escalate",
+        "message": "",
+        "branch_recommendation": null
+      }
+    ],
+    "feedback_events": [],
+    "branch_advice": [
+      {
+        "branch_name": "demo-fixes",
+        "recommendation": "review",
+        "confidence": 0.75,
+        "reasons": [
+          "past the delete-candidate age with no open PR",
+          "work was merged through a PR",
+          "AI suggested delete (75%) without agreement"
+        ],
+        "provider": "combined",
+        "fallback_reason": null
+      },
+      {
+        "branch_name": "demo-run-in-real-mode",
+        "recommendation": "review",
+        "confidence": 0.7,
+        "reasons": [
+          "work was merged through a PR",
+          "AI suggested delete (75%) without agreement"
+        ],
+        "provider": "combined",
+        "fallback_reason": null
+      }
+    ],
+    "deletions_blocked_by_advisor": [
+      "demo-fixes"
+    ],
+    "overrides_respected": 0,
+    "suppressions_expired": 0,
+    "goal_metrics": {
+      "false_stale_label_rate": 0.0,
+      "accidental_deletions": 0,
+      "accidental_deletion_rate": null,
+      "reactivation_rate": 0.0,
+      "ping_response_rate": 0.0,
+      "suppression_expiry_rate": 0.0
+    },
+    "policy": {
+      "step_spacing_days": 1,
+      "confidence_offset": 0.0,
+      "branch_extra_days": 0,
+      "suppression_days_offset": 0
+    },
+    "policy_adjustments": [],
+    "memory_notes": [
+      "dry run: memory not persisted"
+    ]
+  },
   "errors": []
 }
